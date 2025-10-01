@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { StyleSheet, type TextInputProps } from 'react-native';
 
 // Use the actual element type of Pressable for refs:
 type PressableRef = React.ElementRef<typeof Pressable>
@@ -88,41 +89,47 @@ export const Btn = forwardRef<PressableRef, BtnProps>(function Btn(
 })
 
 /** ---------- Field ---------- */
-type FieldProps = {
-  label?: string
-  value?: string
-  onChangeText?: (t: string) => void
-  placeholder?: string
-  keyboardType?: 'default'|'numeric'|'number-pad'|'email-address'|'phone-pad'
-  icon?: string
-  trailing?: React.ReactNode  // ⬅️ NEW
-}
+
+export type FieldProps = TextInputProps & {
+  label?: string;
+  trailing?: React.ReactNode;
+  // keep value/onChangeText required (TextInputProps makes them optional)
+  value: string;
+  onChangeText: (text: string) => void;
+};
+
 export function Field({
   label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType,
   trailing,
+  style,
+  ...inputProps          // <-- collect all TextInputProps (autoCapitalize, keyboardType, etc.)
 }: FieldProps) {
   return (
-    <View style={{ marginBottom: 12 }}>
-      {!!label && <Text style={{ marginBottom: 6, fontWeight: '600' }}>{label}</Text>}
-      <View style={{ flexDirection:'row', alignItems:'center',
-                     borderWidth:1, borderColor:'#ddd', borderRadius:8,
-                     paddingHorizontal:10, backgroundColor:'#fff' }}>
+    <View style={styles.wrap}>
+      {!!label && <Text style={styles.label}>{label}</Text>}
+      <View style={styles.box}>
         <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          keyboardType={keyboardType}
-          style={{ flex:1, paddingVertical:8 }}
+          {...inputProps}             // <-- forward everything to TextInput
+          style={[styles.input, style as any]}
         />
-        {trailing ? <View style={{ marginLeft:8 }}>{trailing}</View> : null}
+        {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
       </View>
     </View>
-  )
+  );
 }
+
+const styles = StyleSheet.create({
+  wrap: { marginBottom: 12 },
+  label: { marginBottom: 6, fontWeight: '600' },
+  box: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
+    paddingHorizontal: 10, backgroundColor: '#fff'
+  },
+  input: { flex: 1, paddingVertical: 8 },
+  trailing: { marginLeft: 8 }
+});
 
 // convenience: Field.Button used across onboarding
 Field.Button = function FieldButton({
