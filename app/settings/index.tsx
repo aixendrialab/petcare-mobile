@@ -1,38 +1,33 @@
 // app/settings/index.tsx
-import React from 'react'
-import { Alert, Platform } from 'react-native'
-import { Screen, Card, Btn } from '@/src/ui'
-import { useRouter } from 'expo-router'
-import { useAuth } from '@/src/auth'
-import RoleSwitcherButton from '@/src/components/RoleSwitcherButton'
+import React from 'react';
+import { Redirect } from '@/src/ui';
+import { useAuth } from '@/src/auth';
+import { Screen, Card, CardContent, Btn, Link } from '@/src/ui';
+import { Href } from 'expo-router';
 
 export default function SettingsIndex() {
-  const router = useRouter()
-  const { active, logout } = useAuth()
-  const doLogout = () => {
-    const go = () => logout()
-    if (Platform.OS === 'web') {
-      // web confirm
-      if (confirm('Log out of PetCare?')) go()
-    } else {
-      Alert.alert('Log out', 'Log out of PetCare?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log out', style: 'destructive', onPress: go },
-      ])
-    }
-  }
+  const { active, logout } = useAuth();
+  const role = (active?.role ?? '').toLowerCase();
 
+  // Delegate to /{role}/settings if we know the role
+  if (role) return <Redirect href={`/${role}/settings` as Href} />;
+
+  // Fallback if role is unknown: keep a minimal settings shell
   return (
-    <Screen title="Settings" subtitle="Account & Pets">
-      <Card title="Your profile">
-        <Btn title="Edit Profile" onPress={() => router.push('/settings/edit')} />
+    <Screen title="Settings">
+      <Card>
+        <CardContent>
+          <Link href="/settings/profile" asChild>
+            <Btn title="Edit Profile" />
+          </Link>
+        </CardContent>
       </Card>
 
-      <RoleSwitcherButton />
-
-      <Card title="Account">
-        <Btn title="Log out" variant="danger" onPress={doLogout} />
+      <Card>
+        <CardContent>
+          <Btn title="Log out" onPress={logout} />
+        </CardContent>
       </Card>
     </Screen>
-  )
+  );
 }

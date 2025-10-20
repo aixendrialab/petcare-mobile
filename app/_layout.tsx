@@ -1,8 +1,9 @@
 // app/_layout.tsx
 import React, { useEffect } from 'react'
-import { Pressable, Text } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { Stack, usePathname, useRouter, Link } from 'expo-router'
 import { AuthProvider, useAuth } from '@/src/auth'
+
 // import HeaderMenu from '@/src/components/HeaderMenu' // keep if you use /settings
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -47,13 +48,15 @@ function Gate({ children }: { children: React.ReactNode }) {
 }
 
 // NEW: context-aware header action
+import RoleSwitcherButton from '@/src/components/RoleSwitcherButton'; // <-- use your existing component
+
 function HeaderRight() {
-  const { state, logout } = useAuth()
+  const { state, logout } = useAuth();
 
-  if (state.status !== 'authed') return null
+  if (state.status !== 'authed') return null;
 
-  const activeRole = state.active?.role
-  const inFunnel = !activeRole
+  const activeRole = state.active?.role;
+  const inFunnel = !activeRole;
 
   if (inFunnel) {
     // Show Logout during the who-am-i / profile funnel
@@ -66,18 +69,22 @@ function HeaderRight() {
       >
         <Text style={{ fontSize: 16 }}>Logout</Text>
       </Pressable>
-    )
+    );
   }
 
-  // After funnel complete, show Settings gear
+  // After funnel: show role switcher + settings
   return (
-    <Link href="/settings" asChild>
-      <Pressable hitSlop={10} accessibilityLabel="Open settings" style={{ paddingHorizontal: 12 }}>
-        <Text style={{ fontSize: 18 }}>⚙️</Text>
-      </Pressable>
-    </Link>
-  )
+    <View style={{ flexDirection:'row', alignItems:'center' }}>
+      <RoleSwitcherButton />
+      <Link href="/settings" asChild>
+        <Pressable hitSlop={10} accessibilityLabel="Open settings" style={{ paddingHorizontal: 12 }}>
+          <Text style={{ fontSize: 18 }}>⚙️</Text>
+        </Pressable>
+      </Link>
+    </View>
+  );
 }
+
 
 export default function RootLayout() {
   return (

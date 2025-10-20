@@ -10,6 +10,17 @@ export function setAuthToken(token?: string) {
   else delete api.defaults.headers.common['Authorization'];
 }
 
+export const get = async <T>(url: string): Promise<T> =>
+  (await api.get<T>(url)).data;
+export const post = async <T>(url: string, data?: any): Promise<T> =>
+  (await api.post<T>(url, data)).data;
+export const put = async <T>(url: string, data?: any): Promise<T> =>
+  (await api.put<T>(url, data)).data;
+export const del = async <T>(url: string): Promise<T> =>
+  (await api.delete<T>(url)).data;
+
+export default api;
+
 // ---- Request interceptor: normalize URL to absolute *once* ----
 api.interceptors.request.use((cfg) => {
   const base = (cfg.baseURL ?? '') as string;

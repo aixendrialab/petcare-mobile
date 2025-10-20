@@ -1,55 +1,32 @@
 // src/utils/phone.ts
+export function normalizePhone(raw: string, defaultCountry: 'IN' = 'IN') {
+  if (!raw) return { e164: '', pretty: '' };
 
-/**
- * Normalize Indian mobile numbers to E.164 (+91XXXXXXXXXX).
- * Accepts inputs like:
- *   9840185469
- *   09840185469
- *   919840185469
- *   +919840185469
- *   +91 98401 85469
- * Returns: "+919840185469" or null if invalid.
- */
-export function normalizeToE164(raw: string): string | null {
-  if (!raw) return null;
+  // Trim and keep only '+' and digits
+  let s = raw.trim().replace(/[^\d+]/g, '');
 
-  const trimmed = (raw + '').trim();
-
-  // Already E.164?
-  if (/^\+91\d{10}$/.test(trimmed)) return trimmed;
-
-  // Keep only digits to reason about variants
-  let digits = trimmed.replace(/\D+/g, '');
-
-  // Remove a single leading 0 (common local format)
-  if (digits.length === 11 && digits.startsWith('0')) {
-    digits = digits.slice(1);
+  // If it already starts with +, keep it normalized
+  if (s.startsWith('+')) {
+    const e164 = '+' + s.slice(1).replace(/\D/g, '');
+    return { e164, pretty: e164 };
   }
 
-  // If the user typed 12 digits starting with 91, treat it as a country code + local
-  if (digits.length === 12 && digits.startsWith('91')) {
-    const local10 = digits.slice(2);
-    return isValidIndianMobile(local10) ? `+91${local10}` : null;
+  // Drop leading zeros
+  s = s.replace(/^0+/, '');
+
+  if (defaultCountry === 'IN') {
+    // If it starts with '91', assume it's Indian, prefix '+' if missing
+    if (s.startsWith('91')) {
+      const e164 = '+' + s;
+      return { e164, pretty: e164 };
+    }
+
+    // Otherwise prefix '+91' to whatever remains
+    const e164 = '+91' + s;
+    return { e164, pretty: e164 };
   }
 
-  // If the user typed exactly 10 digits, assume Indian local mobile
-  if (digits.length === 10) {
-    return isValidIndianMobile(digits) ? `+91${digits}` : null;
-  }
-
-  // Anything else is invalid for now
-  return null;
-}
-
-/** Basic sanity for Indian mobile numbers: 10 digits starting 6-9 */
-function isValidIndianMobile(local10: string): boolean {
-  return /^[6-9]\d{9}$/.test(local10);
-}
-
-/** Pretty print for dialog: "+91 98401 85469" */
-export function prettyForDialog(e164: string): string {
-  // Expect "+919XXXXXXXXX"
-  const m = /^\+91(\d{5})(\d{5})$/.exec(e164.replace(/\s+/g, ''));
-  if (!m) return e164;
-  return `+91 ${m[1]} ${m[2]}`;
+  // Fallback generic case
+  const e164 = '+' + s;
+  return { e164, pretty: e164 };
 }
