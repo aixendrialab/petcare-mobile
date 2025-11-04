@@ -1,46 +1,48 @@
 // src/features/slot-settings/types.ts
 
-export type ConsultationType = 'in_person' | 'video';
-
-export type BreakWindow = {
-  start: string; // 'HH:mm'
-  end: string;   // 'HH:mm'
-};
-
 export type WeekWindow = {
   start: string;  // e.g., "09:00"
   end: string;    // e.g., "12:00"
 };
 
-export type WeekRules = {
-  mon?: WeekWindow[];
-  tue?: WeekWindow[];
-  wed?: WeekWindow[];
-  thu?: WeekWindow[];
-  fri?: WeekWindow[];
-  sat?: WeekWindow[];
-  sun?: WeekWindow[];
-};
-
 export type SlotSettingReadDTO = Partial<SlotSetting>;
+
+// src/features/slot-settings/types.ts
+export type ConsultationType = 'in_person' | 'video';
+
+export type BreakWindow = { start: string; end: string };
+export type DayWindow = { start: string; end: string; breaks?: BreakWindow[] };
+export type WeekRules = {
+  mon?: DayWindow[];
+  tue?: DayWindow[];
+  wed?: DayWindow[];
+  thu?: DayWindow[];
+  fri?: DayWindow[];
+  sat?: DayWindow[];
+  sun?: DayWindow[];
+};
 
 export type SlotSetting = {
   id: number;
-  user_id: number;
   location_id: number;
-  consultation_type: 'in_person' | 'video';
+  consultation_type: ConsultationType;
   slot_minutes: number;
   gap_minutes: number;
   per_slot_capacity: number;
   lead_time_minutes: number;
   booking_window_days: number;
   visible_to_parents: boolean;
-  week_rules: Record<string, any>;
+  week_rules: WeekRules;
   blackout_dates: string[];
   effective_from: string | null;
   effective_to: string | null;
+  // 👇 Added client-side helpers
+  slot_summary?: string;
+  break_count?: number;
 };
 
+
+/** 
 export interface LocalSlotSetting {
   id?: number;
   locationId?: number;
@@ -56,7 +58,7 @@ export interface LocalSlotSetting {
   visibleToParents?: boolean;
   daysOfWeek?: number[];
 }
-
+**/
 export type Location = {
   id: number;
   name: string;

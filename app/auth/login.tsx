@@ -34,7 +34,7 @@ export default function Login() {
       router.push({ pathname: '/auth/verify', params: { phone: e164 } } as any);
     } catch (e: any) {
       console.error('[login] OTP request failed', e);
-      alert(e?.response?.data?.detail || 'Failed to send OTP. Please try again.');
+      alert(e?.response?.data?.detail || 'Failed to send OTP. Please try again.' + e);
     } finally {
       setSending(false);
     }

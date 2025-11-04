@@ -22,11 +22,45 @@ export async function fetchLocations() {
 /**
  * ---- Slot Settings CRUD ----
  */
-export const fetchSlotSettingsByLocation = (
-    id: number, 
-    consultationType: 'video' | 'in_person' = 'in_person', 
-    includeInactive = false) =>
-  get<SlotSetting[]>(`/slot-settings?location_id=${id}&consultation_type=${consultationType}&include_inactive=${includeInactive}`);
+// src/features/slot-settings/api.ts
+
+export const fetchSlotSettingsByLocation = async (
+  id: number,
+  consultationType: 'video' | 'in_person' = 'in_person',
+  includeInactive = false
+): Promise<SlotSetting[]> => {
+  const data = await get<SlotSetting[]>(
+    `/slot-settings?location_id=${id}&consultation_type=${consultationType}&include_inactive=${includeInactive}`
+  );
+
+  return data.map((s) => ({
+    ...s,
+    slot_summary: summarizeWeekRules(s.week_rules),
+    break_count: countBreaks(s.week_rules),
+  }));
+};
+
+function summarizeWeekRules(week_rules: any): string {
+  if (!week_rules) return '—';
+  const days = Object.keys(week_rules);
+  for (const d of days) {
+    const windows = week_rules[d];
+    if (windows && windows.length > 0) {
+      const first = windows[0];
+      const dayName = d.charAt(0).toUpperCase() + d.slice(1);
+      return `${dayName} ${first.start}–${first.end}`;
+    }
+  }
+  return '—';
+}
+
+function countBreaks(week_rules: any): number {
+  let total = 0;
+  Object.values(week_rules || {}).forEach((v: any) =>
+    (v || []).forEach((win: any) => (total += win.breaks?.length || 0))
+  );
+  return total;
+}
 
 export const createSlotSetting = (payload: Omit<SlotSetting, 'id'>) =>
   post<SlotSetting>('/slot-settings', payload);
@@ -125,6 +159,11 @@ export const splitSlotWindow = (payload: SplitWindowPayload) =>
 export const updateSlotStatus = (payload: UpdateStatusPayload) =>
   post<{ ok: boolean; id: number }>('/slot-settings/update-status', payload);
 
-export async function revertSlotOverride(payload: RevertOverridePayload) {
-  return del<void>(`/slot-settings/revert/${payload.slot_setting_id}/${payload.date}`);
-}
+
+/**
+ * Revert an override for a specific date/setting.
+ */
+export const revertSlotOverride = (payload: RevertOverridePayload) =>
+  del<{ ok: boolean }>(
+    `/slot-settings/revert/${payload.slot_setting_id}/${payload.date}`
+  );

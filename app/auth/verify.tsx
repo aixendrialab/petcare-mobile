@@ -41,9 +41,6 @@ export default function Verify() {
       const t0 = Date.now();
       const result = await verifyOtp(p, code); // original flow  :contentReference[oaicite:3]{index=3}
       const ms = Date.now() - t0;
-
-      // Show success visibly (and what we got back, if anything)
-      alert(`DEBUG: verify OK in ${ms}ms\n${JSON.stringify(result ?? {}, null, 2)}`);
       console.log('verifyOtp OK', { ms, result });
     } catch (e: any) {
       console.error('verifyOtp FAILED', e);

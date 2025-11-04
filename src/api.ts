@@ -16,9 +16,12 @@ export const post = async <T>(url: string, data?: any): Promise<T> =>
   (await api.post<T>(url, data)).data;
 export const put = async <T>(url: string, data?: any): Promise<T> =>
   (await api.put<T>(url, data)).data;
-export const del = async <T>(url: string): Promise<T> =>
-  (await api.delete<T>(url)).data;
-
+export const del = async <T>(url: string): Promise<T> => {
+  console.log('📡 DELETE', url);
+  const res = await api.delete<T>(url);
+  console.log('✅ DELETE response', res.status, res.data);
+  return res.data;
+};
 export default api;
 
 // ---- Request interceptor: normalize URL to absolute *once* ----

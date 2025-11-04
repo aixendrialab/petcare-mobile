@@ -29,6 +29,7 @@
     "libphonenumber-js": "^1.12.23",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-hot-toast": "^2.6.0",
     "react-native": "0.74.5",
     "react-native-paper": "^5.14.5",
     "react-native-picker": "^4.3.7",
