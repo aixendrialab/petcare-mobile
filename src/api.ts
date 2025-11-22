@@ -1,63 +1,104 @@
 // src/api.ts
-import axios from 'axios';
-import { API_BASE } from './config';
+import axios from "axios";
+import Constants from "expo-constants";
 
-export const api = axios.create({ baseURL: API_BASE });
+// --- Single Source of Truth ---
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_BASE ||
+  Constants.expoConfig?.extra?.API_BASE;
 
-// Attach/clear Authorization
-export function setAuthToken(token?: string) {
-  if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  else delete api.defaults.headers.common['Authorization'];
+if (!API_BASE) {
+  console.error("❌ API_BASE is undefined! Check your .env or app.config.ts");
 }
 
+console.log("🔌 Using API_BASE =", API_BASE);
+
+// --- Axios client ---
+export const api = axios.create({
+  baseURL: API_BASE,
+  timeout: 15000,
+});
+
+// --- Auth header helper ---
+export function setAuthToken(token?: string) {
+  if (token) {
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common["Authorization"];
+  }
+}
+
+// --- Simple wrappers ---
 export const get = async <T>(url: string): Promise<T> =>
   (await api.get<T>(url)).data;
+
 export const post = async <T>(url: string, data?: any): Promise<T> =>
   (await api.post<T>(url, data)).data;
+
 export const put = async <T>(url: string, data?: any): Promise<T> =>
   (await api.put<T>(url, data)).data;
+
 export const del = async <T>(url: string): Promise<T> => {
-  console.log('📡 DELETE', url);
+  console.log("📡 DELETE", url);
   const res = await api.delete<T>(url);
-  console.log('✅ DELETE response', res.status, res.data);
+  console.log("✅ DELETE response", res.status, res.data);
   return res.data;
 };
-export default api;
 
-// ---- Request interceptor: normalize URL to absolute *once* ----
+// -----------------------------------------------------------
+// REQUEST INTERCEPTOR: Normalize URL to a *true absolute URL*
+// -----------------------------------------------------------
 api.interceptors.request.use((cfg) => {
-  const base = (cfg.baseURL ?? '') as string;
-  const rel  = (cfg.url ?? '') as string;
+  const base = API_BASE ?? "";
+  const rel = cfg.url ?? "";
 
-  // Build a proper absolute URL (handles stray quotes in base, double slashes, etc.)
-  const cleanedBase = base.trim().replace(/^['"]|['"]$/g, '');  // dequote just in case
-  const absolute = new URL(rel.replace(/^\/+/, ''), cleanedBase.endsWith('/') ? cleanedBase : cleanedBase + '/').toString();
+  const cleanedBase = base.trim().replace(/^['"]|['"]$/g, "");
 
-  // Freeze the final URL onto cfg and drop baseURL so Axios won’t recompute
+  const absolute = new URL(
+    rel.replace(/^\/+/, ""),
+    cleanedBase.endsWith("/") ? cleanedBase : cleanedBase + "/"
+  ).toString();
+
   cfg.url = absolute;
-  // @ts-ignore Axios typing: set baseURL undefined to prevent double-join
-  cfg.baseURL = undefined;
+  // @ts-ignore suppress mismatch
+  cfg.baseURL = undefined; // avoid double-prepending
 
-  console.log('→', (cfg.method || 'GET').toUpperCase(), absolute, { headers: cfg.headers, data: cfg.data });
+  console.log(
+    "→",
+    (cfg.method || "GET").toUpperCase(),
+    absolute,
+    { headers: cfg.headers, data: cfg.data }
+  );
+
   return cfg;
 });
 
-// ---- Response interceptor: truthful final URL + guard against HTML ----
+// -----------------------------------------------------------
+// RESPONSE INTERCEPTOR: Verify final URL + detect HTML issues
+// -----------------------------------------------------------
 api.interceptors.response.use(
   (res) => {
-    const ct = res.headers?.['content-type'] || '';
-    // With the request patch, res.config.url is already absolute & truthful
-    console.log('←', res.status, res.config.method?.toUpperCase(), res.config.url, ct);
+    const ct = res.headers?.["content-type"] || "";
+    console.log(
+      "←",
+      res.status,
+      res.config.method?.toUpperCase(),
+      res.config.url,
+      ct
+    );
 
-    // If we *still* see HTML, we definitely hit the web dev server (navigation/redirect/SW)
-    if (ct.includes('text/html')) {
-      console.error('Unexpected HTML from API — likely a redirect/navigation to the web dev server.');
-      // throw new Error('Unexpected HTML from API'); // keep disabled while debugging
+    if (ct.includes("text/html")) {
+      console.error(
+        "❌ HTML received — this means a redirect or Expo dev server handled the request!"
+      );
     }
+
     return res;
   },
   (err) => {
-    console.log('✖', err?.response?.status, err?.config?.url, err?.message);
+    console.log("✖ ERROR", err?.response?.status, err?.config?.url, err?.message);
     throw err;
   }
 );
+
+export default api;
