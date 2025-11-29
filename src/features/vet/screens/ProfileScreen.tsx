@@ -3,6 +3,10 @@ import { View, Text, ActivityIndicator, TouchableOpacity, ScrollView, Switch } f
 import { Screen, Field, Btn } from '@/src/ui'
 import { fetchVetProfile, saveVetProfile } from '../api'
 import { VetProfile, VetLocation } from '../types'
+import { useNavigation } from '@react-navigation/native'
+import ValidatedField from '@/src/components/ValidatedField'
+import { FormValidationProvider, useValidation } from '@/src/components/FormValidationContext'
+import { isEmail } from '@/src/ui/validators'
 
 function Section({ title, expanded, onToggle, children }: any) {
   return (
@@ -17,9 +21,18 @@ function Section({ title, expanded, onToggle, children }: any) {
 }
 
 export default function VetProfileScreen() {
+  return (
+    <FormValidationProvider>
+      <VetProfileScreenInner />
+    </FormValidationProvider>
+  );
+}
+
+function VetProfileScreenInner() {
   const [profile, setProfile] = useState<VetProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const navigation = useNavigation()
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     account: true,
     business: false,
@@ -27,6 +40,8 @@ export default function VetProfileScreen() {
     consult: false,
     locations: false
   })
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { validateForm } = useValidation();
 
   useEffect(() => {
     (async () => {
@@ -75,6 +90,11 @@ export default function VetProfileScreen() {
 
   async function save() {
     if (!profile) return
+    // run validation
+    if (!validateForm()) {
+      alert("Please fix required fields");
+      return;
+    }
     setSaving(true)
     try {
       // convert specialties to array if typed as string
@@ -86,6 +106,7 @@ export default function VetProfileScreen() {
       }
       await saveVetProfile(payload)
       alert('Saved successfully!')
+      navigation.goBack()
     } catch (e) {
       console.error('Save error', e)
       alert('Failed to save profile')
@@ -107,89 +128,104 @@ export default function VetProfileScreen() {
   if (!profile) return null
 
   return (
-    <Screen
-      title="Edit Profile"
-      footer={<Btn title={saving ? 'Saving…' : 'Save'} onPress={save} disabled={saving} />}
-    >
-      <ScrollView style={{ paddingHorizontal: 8 }}>
-        {/* ------------------ Account ------------------ */}
-        <Section
-          title="Account"
-          expanded={expanded.account}
-          onToggle={() => setExpanded(e => ({ ...e, account: !e.account }))}
-        >
-          <Field label="Full name" value={profile.name ?? ''} onChangeText={v => update('name', v)} />
-          <Field label="Email" value={profile.email ?? ''} onChangeText={v => update('email', v)} />
-        </Section>
+      <Screen
+        title="Edit Profile"
+        footer={<Btn title={saving ? 'Saving…' : 'Save'} onPress={save} disabled={saving} />}
+      >
+        <ScrollView style={{ paddingHorizontal: 8 }}>
+          {/* ------------------ Account ------------------ */}
+          <Section
+            title="Account"
+            expanded={expanded.account}
+            onToggle={() => setExpanded(e => ({ ...e, account: !e.account }))}
+          >
+            <ValidatedField
+              label="Full name"
+              required
+              value={profile.name ?? ''}
+              onChangeText={(v) => update("name", v)}
+              error={errors.name}
+            />
 
-        {/* ------------------ Business ------------------ */}
-        <Section
-          title="Business Identity & Billing"
-          expanded={expanded.business}
-          onToggle={() => setExpanded(e => ({ ...e, business: !e.business }))}
-        >
-          <Field label="Legal name" value={profile.legal_name ?? ''} onChangeText={v => update('legal_name', v)} />
-          <Field label="Display name" value={profile.display_name ?? ''} onChangeText={v => update('display_name', v)} />
-          <Field label="Business email" value={profile.business_email ?? ''} onChangeText={v => update('business_email', v)} keyboardType="email-address" />
-          <Field label="Billing email" value={profile.billing_email ?? ''} onChangeText={v => update('billing_email', v)} keyboardType="email-address" />
-          <Field label="Billing address" value={profile.billing_address ?? ''} onChangeText={v => update('billing_address', v)} />
-          <Field label="GSTIN" value={profile.gstin ?? ''} onChangeText={v => update('gstin', v)} />
-          <Field label="PAN" value={profile.pan ?? ''} onChangeText={v => update('pan', v)} />
-        </Section>
+            <ValidatedField
+              name="email"
+              label="Email"
+              required
+              validate={isEmail("Please enter a valid email")}
+              value={profile.email ?? ""}
+              onChangeText={(v) => update("email", v)}
+            />
 
-        {/* ------------------ Professional ------------------ */}
-        <Section
-          title="Professional Info"
-          expanded={expanded.professional}
-          onToggle={() => setExpanded(e => ({ ...e, professional: !e.professional }))}
-        >
-          <Field label="Qualifications" value={profile.qualifications ?? ''} onChangeText={v => update('qualifications', v)} />
-          <Field label="License number" value={profile.license_no ?? ''} onChangeText={v => update('license_no', v)} />
-          <Field label="Experience (years)" value={String(profile.experience_years ?? 0)} onChangeText={v => update('experience_years', Number(v))} keyboardType="numeric" />
-          <Field
-            label="Specialties (comma-separated)"
-            value={Array.isArray(profile.specialties) ? profile.specialties.join(', ') : (profile.specialties ?? '')}
-            onChangeText={v => update('specialties', v)}
-            placeholder="dermatology, surgery, cardiology"
-          />
-        </Section>
+          </Section>
 
-        {/* ------------------ Consultation ------------------ */}
-        <Section
-          title="Consultation Settings"
-          expanded={expanded.consult}
-          onToggle={() => setExpanded(e => ({ ...e, consult: !e.consult }))}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 6 }}>
-            <Text>In-clinic visits</Text>
-            <Switch value={profile.visit_in_clinic} onValueChange={v => update('visit_in_clinic', v)} />
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 6 }}>
-            <Text>Video visits</Text>
-            <Switch value={profile.visit_video} onValueChange={v => update('visit_video', v)} />
-          </View>
-          <Field label="Fee (In-clinic)" value={String(profile.fee_in_clinic ?? 0)} onChangeText={v => update('fee_in_clinic', Number(v))} keyboardType="numeric" />
-          <Field label="Fee (Video)" value={String(profile.fee_video ?? 0)} onChangeText={v => update('fee_video', Number(v))} keyboardType="numeric" />
-          <Field label="Slot minutes" value={String(profile.slot_minutes ?? 15)} onChangeText={v => update('slot_minutes', Number(v))} keyboardType="numeric" />
-        </Section>
+          {/* ------------------ Business ------------------ */}
+          <Section
+            title="Business Identity & Billing"
+            expanded={expanded.business}
+            onToggle={() => setExpanded(e => ({ ...e, business: !e.business }))}
+          >
+            <Field label="Legal name" value={profile.legal_name ?? ''} onChangeText={v => update('legal_name', v)} />
+            <Field label="Display name" value={profile.display_name ?? ''} onChangeText={v => update('display_name', v)} />
+            <Field label="Business email" value={profile.business_email ?? ''} onChangeText={v => update('business_email', v)} keyboardType="email-address" />
+            <Field label="Billing email" value={profile.billing_email ?? ''} onChangeText={v => update('billing_email', v)} keyboardType="email-address" />
+            <Field label="Billing address" value={profile.billing_address ?? ''} onChangeText={v => update('billing_address', v)} />
+            <Field label="GSTIN" value={profile.gstin ?? ''} onChangeText={v => update('gstin', v)} />
+            <Field label="PAN" value={profile.pan ?? ''} onChangeText={v => update('pan', v)} />
+          </Section>
 
-        {/* ------------------ Locations ------------------ */}
-        <Section
-          title="Locations"
-          expanded={expanded.locations}
-          onToggle={() => setExpanded(e => ({ ...e, locations: !e.locations }))}
-        >
-          {profile.locations.map((loc, i) => (
-            <View key={i} style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, marginBottom: 8 }}>
-              <Field label="Name" value={loc.name} onChangeText={v => updateLoc(i, { name: v })} />
-              <Field label="City" value={loc.city ?? ''} onChangeText={v => updateLoc(i, { city: v })} />
-              <Field label="Hours" value={loc.hours ?? ''} onChangeText={v => updateLoc(i, { hours: v })} />
-              <Btn title="Remove" onPress={() => removeLocation(i)} />
+          {/* ------------------ Professional ------------------ */}
+          <Section
+            title="Professional Info"
+            expanded={expanded.professional}
+            onToggle={() => setExpanded(e => ({ ...e, professional: !e.professional }))}
+          >
+            <Field label="Qualifications" value={profile.qualifications ?? ''} onChangeText={v => update('qualifications', v)} />
+            <Field label="License number" value={profile.license_no ?? ''} onChangeText={v => update('license_no', v)} />
+            <Field label="Experience (years)" value={String(profile.experience_years ?? 0)} onChangeText={v => update('experience_years', Number(v))} keyboardType="numeric" />
+            <Field
+              label="Specialties (comma-separated)"
+              value={Array.isArray(profile.specialties) ? profile.specialties.join(', ') : (profile.specialties ?? '')}
+              onChangeText={v => update('specialties', v)}
+              placeholder="dermatology, surgery, cardiology"
+            />
+          </Section>
+
+          {/* ------------------ Consultation ------------------ */}
+          <Section
+            title="Consultation Settings"
+            expanded={expanded.consult}
+            onToggle={() => setExpanded(e => ({ ...e, consult: !e.consult }))}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 6 }}>
+              <Text>In-clinic visits</Text>
+              <Switch value={profile.visit_in_clinic} onValueChange={v => update('visit_in_clinic', v)} />
             </View>
-          ))}
-          <Btn title="+ Add Location" onPress={addLocation} />
-        </Section>
-      </ScrollView>
-    </Screen>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 6 }}>
+              <Text>Video visits</Text>
+              <Switch value={profile.visit_video} onValueChange={v => update('visit_video', v)} />
+            </View>
+            <Field label="Fee (In-clinic)" value={String(profile.fee_in_clinic ?? 0)} onChangeText={v => update('fee_in_clinic', Number(v))} keyboardType="numeric" />
+            <Field label="Fee (Video)" value={String(profile.fee_video ?? 0)} onChangeText={v => update('fee_video', Number(v))} keyboardType="numeric" />
+            <Field label="Slot minutes" value={String(profile.slot_minutes ?? 15)} onChangeText={v => update('slot_minutes', Number(v))} keyboardType="numeric" />
+          </Section>
+
+          {/* ------------------ Locations ------------------ */}
+          <Section
+            title="Locations"
+            expanded={expanded.locations}
+            onToggle={() => setExpanded(e => ({ ...e, locations: !e.locations }))}
+          >
+            {profile.locations.map((loc, i) => (
+              <View key={i} style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, marginBottom: 8 }}>
+                <Field label="Name" value={loc.name} onChangeText={v => updateLoc(i, { name: v })} />
+                <Field label="City" value={loc.city ?? ''} onChangeText={v => updateLoc(i, { city: v })} />
+                <Field label="Hours" value={loc.hours ?? ''} onChangeText={v => updateLoc(i, { hours: v })} />
+                <Btn title="Remove" onPress={() => removeLocation(i)} />
+              </View>
+            ))}
+            <Btn title="+ Add Location" onPress={addLocation} />
+          </Section>
+        </ScrollView>
+      </Screen>
   )
 }
