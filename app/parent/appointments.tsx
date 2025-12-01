@@ -10,7 +10,7 @@ export default function ParentAppointments(){
   const [items, setItems] = useState<Appt[]>([]);
   const load = async ()=>{
     try { 
-      const j = await api.get<Appt>('/appointments?owner_id=1').then(r => r.data); 
+      const j = await api.get<Appt>('/appointments').then(r => r.data); 
       setItems(asArray<Appt>(j, [])); }
     catch { setItems([]); }
   };

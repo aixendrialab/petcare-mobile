@@ -8,7 +8,7 @@ import { MergeWindowPayload, SplitWindowPayload, UpdateStatusPayload } from './t
  */
 export async function fetchLocations() {
   try {
-    const data = await get<Location[]>('/users/vet/locations');
+    const data = await get<Location[]>('/vet/locations');
     console.log('🔍 fetchLocations response:', data);
    // alert('Server returned:\n' + JSON.stringify(data, null, 2)); // temporary debug
     return data;

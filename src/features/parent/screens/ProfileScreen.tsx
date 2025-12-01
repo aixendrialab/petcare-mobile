@@ -5,6 +5,7 @@ import { Screen, Field, Btn, Card } from '@/src/ui'
 import { fetchParentProfile, saveParentProfile } from '../api'
 import { ParentProfile } from '../types'
 import PetRow from '@/src/components/PetRow'
+import { router } from 'expo-router'
 
 export default function ParentProfileScreen() {
   const [profile, setProfile] = useState<ParentProfile | null>(null)
@@ -57,6 +58,7 @@ export default function ParentProfileScreen() {
     try {
       await saveParentProfile(profile)
       alert('Profile saved successfully!')
+      router.back();
     } catch (e) {
       console.error('[ParentProfileScreen] save error', e)
       alert('Failed to save profile')
