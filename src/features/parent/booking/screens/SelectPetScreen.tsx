@@ -14,20 +14,34 @@ export default function SelectPetScreen() {
   const [pets, setPets] = useState<Pet[]>([]);
   const params = useLocalSearchParams();
 
-useEffect(() => {
-  api.get("/parents/pets")
-    .then((r) => {
-      const list = Array.isArray(r.data) ? r.data : r.data.pets || [];
-      setPets(list);
-    })
-    .catch(() => setPets([]));
-}, []);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await api.get("/parents/pets");
+        const list = Array.isArray(r.data) ? r.data : r.data.pets || [];
 
+        setPets(list);
+
+        // 🚀 AUTO-SKIP WHEN THERE IS ONLY ONE PET
+        if (list.length === 1) {
+          const p = list[0];
+          router.replace({
+            pathname: "/parent/book/confirm",
+            params: { ...params, pet_id: p.id, pet_name: p.name },
+          });
+        }
+      } catch {
+        setPets([]);
+      }
+    };
+
+    load();
+  }, []);
 
   return (
     <Screen title="Select Pet">
       <ScrollView style={{ padding: 16 }}>
-        {Array.isArray(pets) && pets.map((p) => (
+        {pets.map((p) => (
           <Pressable
             key={p.id}
             onPress={() =>
