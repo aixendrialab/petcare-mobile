@@ -2,7 +2,6 @@
 import * as React from 'react';
 import {
   View,
-  Text,
   ViewStyle,
   TextStyle,
   KeyboardAvoidingView,
@@ -10,6 +9,7 @@ import {
   ScrollView,
   SafeAreaView,
   Pressable,
+  Text as RNText
 } from 'react-native';
 import {
   Provider as PaperProvider,
@@ -17,16 +17,31 @@ import {
   Card as PaperCard,
   Button as PaperButton,
   TextInput as PaperInput,
-  Chip,
+  Chip as PaperChip,
   Switch as PaperSwitch,
+  Avatar as PaperAvatar,
   MD3LightTheme,
   MD3DarkTheme,
   configureFonts,
 } from 'react-native-paper';
 export { Link, Redirect } from 'expo-router'; // <-- Re-export for convenience
+import { Image } from 'react-native';
 
-// ===== THEME =====
+
+
+// --------------------
+// TEXT
+// --------------------
+export function Text(props: React.ComponentProps<typeof RNText>) {
+  return <RNText {...props} />;
+}
+
+
+// --------------------
+// THEME
+// --------------------
 const fonts = configureFonts({ config: {} });
+
 const lightTheme = {
   ...MD3LightTheme,
   colors: {
@@ -38,6 +53,7 @@ const lightTheme = {
   },
   fonts,
 };
+
 const darkTheme = {
   ...MD3DarkTheme,
   colors: {
@@ -54,6 +70,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   return <PaperProvider theme={theme}>{children}</PaperProvider>;
 }
 
+
 /** ---------- Card ---------- */
 export type CardProps = {
   title?: string;
@@ -62,6 +79,7 @@ export type CardProps = {
   style?: ViewStyle | ViewStyle[];
   onPress?: () => void;
 };
+
 export const Card = React.forwardRef<View, CardProps>(function Card(
   { title, subtitle, children, style, onPress },
   ref
@@ -75,15 +93,12 @@ export const Card = React.forwardRef<View, CardProps>(function Card(
     </>
   );
 
-  if (onPress) {
-    return (
-      <PaperCard onPress={onPress} style={[{ marginVertical: 8, borderRadius: 12 }, style as any]} ref={ref as any}>
-        {Body}
-      </PaperCard>
-    );
-  }
   return (
-    <PaperCard style={[{ marginVertical: 8, borderRadius: 12 }, style as any]} ref={ref as any}>
+    <PaperCard
+      ref={ref as any}
+      onPress={onPress}
+      style={[{ marginVertical: 8, borderRadius: 12 }, style]}
+    >
       {Body}
     </PaperCard>
   );
@@ -134,23 +149,25 @@ export const Btn = React.forwardRef<View, BtnProps>(function Btn(
 export type FieldProps = React.ComponentProps<typeof PaperInput> & {
   label?: string;
   trailing?: React.ReactNode;
-  value: string;
+  value: string | undefined;          // <-- FIXED: allow undefined safely
   onChangeText: (text: string) => void;
 };
+
 export function Field({ label, trailing, value, onChangeText, ...rest }: FieldProps) {
   return (
     <PaperInput
       mode="outlined"
       dense
       label={label}
-      value={value}
+      value={value ?? ''}             // <-- FIXED: no crash if undefined
       onChangeText={onChangeText}
       right={trailing ? <PaperInput.Icon icon={() => <View>{trailing}</View>} /> : undefined}
-      style={[{ marginVertical: 6 }, (rest as any).style]}
+      style={[{ marginVertical: 6 }, rest.style]}
       {...rest}
     />
   );
 }
+
 
 /** ---------- Pill ---------- */
 export function Pill({
@@ -258,3 +275,80 @@ export function Screen({ title, subtitle, onBack, right, footer, children }: Scr
 export function Switch({ value, onValueChange }: { value: boolean; onValueChange: (v: boolean) => void }) {
   return <PaperSwitch value={value} onValueChange={onValueChange} />;
 }
+
+// --------------------
+// CHIP
+// --------------------
+export function Chip(props: React.ComponentProps<typeof PaperChip>) {
+  return <PaperChip {...props} />;
+}
+
+// --------------------
+// AVATAR
+// --------------------
+export const Avatar = {
+  Image: (props: { size?: number; source: any; style?: any }) => {
+    const size = props.size ?? 40;
+    return (
+      <Image
+        {...props}
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+          },
+          props.style,
+        ]}
+      />
+    );
+  },
+};
+
+/** ---------- Tabs ---------- */
+
+type TabsProps = {
+  tabs: string[];
+  children: { [key: string]: React.ReactNode };
+};
+
+export function Tabs({ tabs, children }: TabsProps) {
+  const [active, setActive] = React.useState(tabs[0]);
+
+  return (
+    <View style={{ marginVertical: 12 }}>
+      {/* Tab chips */}
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+        {tabs.map((t) => {
+          const selected = t === active;
+          return (
+            <Pressable
+              key={t}
+              onPress={() => setActive(t)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 999,
+                marginRight: 8,
+                backgroundColor: selected ? '#2563eb' : '#f3f4f6',
+              }}
+            >
+              <Text
+                style={{
+                  color: selected ? '#ffffff' : '#111827',
+                  fontWeight: selected ? '600' : '400',
+                }}
+              >
+                {t}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Active tab content */}
+      <View>{children[active]}</View>
+    </View>
+  );
+}
+

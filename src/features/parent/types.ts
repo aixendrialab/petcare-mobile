@@ -1,15 +1,30 @@
 // src/features/parent/types.ts
 
 export type ParentPet = {
-  id?: number
-  name: string
-  breed?: string
-  dob?: string
-  gender?: string
-  vaccine_status?: string
-  rewards?: string
-  picture_uri?: string
-}
+  id?: number;
+
+  name: string;
+  breed?: string;
+  dob?: string;
+
+  gender?: '' | 'male' | 'female' | 'unknown';
+
+  vaccine_status?: string;
+  rewards?: string;
+
+  picture_uri?: string;
+  _local_uri?: string;   // for preview
+
+  microchip?: string;
+  blood_group?: string;
+  allergies?: string;
+  chronic_conditions?: string;
+  behavior_notes?: string;
+  color_markings?: string;
+
+  weight_kg?: number;
+};
+
 
 export type ParentProfile = {
   id?: number
@@ -51,3 +66,51 @@ export type Prescription = {
     before_after_food: string
   }[]
 }
+
+export interface Vitals {
+  weight_kg?: number | null;
+  temp_c?: number | null;
+  heart_rate?: number | null;
+  resp_rate?: number | null;
+  notes?: string | null;
+}
+
+export interface Medication {
+  name: string;
+  dose?: string | null;
+  frequency?: string | null;
+  days?: number | null;
+  notes?: string | null;
+}
+
+export interface ParentConsultDetail {
+  consult_id: number;
+  date: string;              // ISO string from server
+  pet_name: string;
+  pet_avatar_url?: string | null;
+  clinic_name?: string | null;
+  vet_name?: string | null;
+
+  reason?: string | null;
+  symptom_notes?: string | null;
+  findings?: string | null;
+  diagnosis?: string | null;
+  advice?: string | null;
+
+  vitals?: Vitals | null;
+  medications: Medication[];
+}
+
+export interface ParentRecentConsult {
+  consult_id: number;
+  date: string;                // ISO string from server
+  pet_id: number;
+  pet_name: string;
+  pet_avatar_url?: string | null;
+  clinic_name?: string | null;
+  vet_name?: string | null;
+  diagnosis?: string | null;
+}
+
+
+

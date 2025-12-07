@@ -37,3 +37,26 @@ export async function createAppointment(payload: AppointmentCreate) {
     .post<AppointmentCreated>("/appointments", payload)
     .then((r) => r.data);
 }
+
+// =======================
+// Parent Reschedule API
+// =======================
+export async function parentRescheduleAppointment(
+  appointment_id: number,
+  new_start_ts: string,
+  new_end_ts: string
+) {
+  const res = await api.post(
+    `/parents/appointments/reschedule`, 
+    null,  // no body
+    {
+      params: {
+        appointment_id,
+        new_start_ts,
+        new_end_ts,
+      }
+    }
+  );
+
+  return res.data;
+}

@@ -5,24 +5,13 @@ import { useRouter } from 'expo-router'
 import { api } from '@/src/api'
 import { useAuth } from '@/src/auth'
 import { router } from 'expo-router';
+import { Appt } from '@/src/features/parent/booking/types'
+import { ParentRecentConsult, ParentUpcomingAppointment } from '@/src/features/parent/types'
+import { fetchParentNextAppointment, fetchParentRecentConsults } from '@/src/features/parent/api'
+import { Card } from 'react-native-paper'
+import { Tile } from '@/src/ui.paper'
 
 type Pet = { id: number; name: string; breed?: string; picture_uri?: string }
-type Appt = {
-  id: number;
-  slot_id: string;
-  mode: string;
-  start_ts: string;
-  end_ts: string;
-  vet_id: number;
-  location_id: number;
-  pet_id: number;
-  pet_name: string;
-  vet_name: string;
-  location_name: string;
-  calendar_state: string;
-  visit_state?: string;
-  notes?: string;
-};
 
 type Rx = { id: number; drug: string; status: string }
 type Order = { id: number; status: string; total: number }
@@ -43,19 +32,18 @@ export default function ParentHome() {
   const router = useRouter()
   const { user } = useAuth();
   const [pets, setPets] = useState<Pet[]>([])
-  const [appts, setAppts] = useState<Appt[]>([])
+  const [nextAppt, setNextAppt] = useState<ParentUpcomingAppointment | null>(null);
   const [vaccinesDue, setVaccinesDue] = useState<any[]>([])
   const [rx, setRx] = useState<Rx[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [recentVisits, setRecentVisits] = useState<ParentRecentConsult[]>([])
+
+  useEffect(() => {
+    fetchParentNextAppointment().then(setNextAppt).catch(() => setNextAppt(null));
+  }, []);
 
   useEffect(() => {
     api.get('/me/pets').then(r => setPets(r.data.pets || [])).catch(() => setPets([]))
-
-    // Wire these when Lot D endpoints are in place; harmless if 404/empty:
-    api.get('/appointments?mine=1')
-      .then(r => setAppts(r.data || []))
-      .catch(() => setAppts([]))
-
 
     api.get('/vaccines/due?mine=1')
       .then(r => setVaccinesDue(r.data.items || []))
@@ -69,6 +57,14 @@ export default function ParentHome() {
       .then(r => setOrders(r.data.items || []))
       .catch(() => setOrders([]))
   }, [])
+
+  useEffect(() => {
+    ; (async () => {
+      const data = await fetchParentRecentConsults()
+      setRecentVisits(data)
+    })()
+  }, [])
+
 
   const name = user?.name?.trim()
   const greeting = name && name.length > 0 ? `Welcome, ${name}` : 'Welcome'
@@ -108,8 +104,16 @@ export default function ParentHome() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
         <QuickAction label="Book a Vet" subtitle="In-clinic or video"
           onPress={() => router.push('/parent/book' as any)} />
+
         <QuickAction label="Upcoming Appointments" subtitle="Upcoming & past"
           onPress={() => router.push('/parent/appointments' as any)} />
+
+        <QuickAction
+          label="Recent Visits"
+          subtitle="Your past consultations"
+          onPress={() => router.push('/parent/visits')}
+        />
+
         <QuickAction label="Televisit" subtitle="Start a consult"
           onPress={() => router.push('/parent/televisit' as any)} />
         <QuickAction label="Upload Report" subtitle="PDF / Images"
@@ -120,74 +124,55 @@ export default function ParentHome() {
           onPress={() => router.push('/parent/cart' as any)} />
       </ScrollView>
 
-      {/* Upcoming Appointments */}
-      <Section
-        title="Upcoming Appointments"
-        onSeeAll={() => router.push('/parent/appointments' as any)}
-      >
-        {appts.length === 0 ? (
-          <Empty
-            text="No upcoming visits. Book a slot now →"
-            onAction={() => router.push('/parent/book' as any)}
-          />
+      {/* Only One Upcoming Appointment */}
+      <Section title="Next Appointment" onSeeAll={() => router.push('/parent/appointments')}>
+        {!nextAppt ? (
+          <Empty text="No upcoming appointments" />
         ) : (
-          appts.slice(0, 3).map(a => (
-            <View key={a.id}
-              style={{
-                backgroundColor: '#f7fbff',
-                borderRadius: 14,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: '#d8eafd'
-              }}
-            >
+          <Card onPress={() =>
+            router.push(`/parent/appointment/${nextAppt.id}`)
+          }>
+            <Text style={{ fontWeight: '700' }}>
+              {nextAppt.pet_name} with {nextAppt.vet_name}
+            </Text>
+            <Text>🏥 {nextAppt.location_name}</Text>
+            <Text>⏰ {new Date(nextAppt.start_ts).toLocaleString()}</Text>
+            <Text>🎫 Booking ID: {nextAppt.slot_id}</Text>
+          </Card>
 
-              {/* Vet Name */}
-              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 6 }}>
-                {a.pet_name} has an appointment with {a.vet_name}
-              </Text>
-
-              {/* Clinic */}
-              <Text style={{ opacity: 0.7, marginBottom: 4 }}>
-                🏥 {a.location_name}
-              </Text>
-
-              {/* Time */}
-              <Text style={{ opacity: 0.7, marginBottom: 4 }}>
-                ⏰ {formatDateTime(a.start_ts)}
-              </Text>
-
-              {/* Mode */}
-              <Text style={{ opacity: 0.7, marginBottom: 4 }}>
-                {a.mode === 'video' ? '🎦 Video Consultation' : '🩺 In-Clinic Visit'}
-              </Text>
-
-              {/* Booking ID */}
-              <Text style={{ marginTop: 8, fontWeight: '600' }}>
-                🎫 Booking ID: {a.slot_id}
-              </Text>
-
-              {/* Join button (only for video mode) */}
-              {a.mode === 'video' && (
-                <Pressable
-                  onPress={() => router.push(`/parent/video/${a.id}`)}
-                  style={{
-                    marginTop: 12,
-                    backgroundColor: '#4c8bf5',
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: 'white', fontWeight: '700' }}>Join Video Call</Text>
-                </Pressable>
-              )}
-
-            </View>
-          ))
         )}
       </Section>
 
+
+
+      {/* Most Recent Visit */}
+      <Section
+        title="Recent Visit"
+        onSeeAll={() => router.push('/parent/consults')}
+      >
+        {recentVisits.length === 0 ? (
+          <Empty text="No recent consultations." />
+        ) : (
+          (() => {
+            const rv = recentVisits[0]; // 👈 ONLY THE MOST RECENT
+            return (
+              <Tile
+                key={rv.consult_id}
+                title={`${rv.pet_name} – ${rv.vet_name}`}
+                label={rv.clinic_name ?? ''}
+                subtitle={rv.diagnosis || 'Consult completed'}
+                caption={new Date(rv.date).toLocaleString()}
+                onPress={() =>
+                  router.push({
+                    pathname: '/parent/consult/[consultId]',
+                    params: { consultId: String(rv.consult_id) },
+                  })
+                }
+              />
+            );
+          })()
+        )}
+      </Section>
 
 
       {/* Vaccines Due */}

@@ -59,3 +59,22 @@ export interface Slot {
   capacity: number;
   status: "available" | "full" | "blocked";
 }
+
+export interface Appt {
+  id: number;
+  vet_id: number;
+  location_id: number;
+  parent_id: number;
+  pet_id: number;
+  pet_name: string;
+  vet_name: string;
+  location_name: string;
+  slot_id: string;
+  mode: string;
+  start_ts: string;
+  end_ts: string;
+  calendar_state: string;
+  visit_state?: string;
+  notes?: string;
+}
+

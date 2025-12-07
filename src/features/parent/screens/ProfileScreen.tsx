@@ -36,16 +36,31 @@ export default function ParentProfileScreen() {
     setProfile({ ...profile, pets: next })
   }
 
-  function addPet() {
-    if (!profile) return
-    setProfile({
-      ...profile,
-      pets: [
-        ...profile.pets,
-        { name: '', breed: '', dob: '', gender: '', vaccine_status: '', rewards: '' }
-      ]
-    })
-  }
+function addPet() {
+  if (!profile) return;
+  setProfile({
+    ...profile,
+    pets: [
+      ...profile.pets,
+      {
+        name: '',
+        breed: '',
+        dob: '',
+        gender: '',
+        vaccine_status: '',
+        rewards: '',
+        microchip: '',
+        blood_group: '',
+        allergies: '',
+        chronic_conditions: '',
+        behavior_notes: '',
+        color_markings: '',
+        weight_kg: undefined,
+      }
+    ]
+  });
+}
+
 
   function removePet(idx: number) {
     if (!profile) return
