@@ -1,6 +1,15 @@
 // src/features/parent/api.ts
 import { api } from '@/src/api'
-import { ParentProfile, ParentPet, Appointment, Invoice, Prescription,  ParentConsultDetail, ParentRecentConsult } from './types'
+import { 
+  ParentProfile, 
+  ParentPet, 
+  Appointment, 
+  Invoice, 
+  Prescription,  
+  ParentConsultDetail, 
+  ParentRecentConsult, 
+  ParentUpcomingAppointment, 
+  ParentUpcomingAppointmentsResponse } from './types'
 import { Appt } from './booking/types'
 
 // ---------- Profile ----------
@@ -66,19 +75,22 @@ export async function fetchParentConsultDetail(
 }
 
 // ---------- Upcoming appointments ----------
-export async function fetchParentUpcomingAppointments(limit: number = 10): 
-  Promise<Appt[]> {
-
-  const { data } = await api.get("/parents/appointments/upcoming", {
-    params: { limit }
-  });
-
-  return data.items || [];
+export async function fetchParentUpcomingAppointments(
+  limit: number = 10
+): Promise<ParentUpcomingAppointment[]> {
+  const res = await api.get<ParentUpcomingAppointmentsResponse>(
+    "/parents/appointments/upcoming",
+    { params: { limit } }
+  );
+  return res.data.items ?? [];
 }
 
-export async function fetchParentNextAppointment() {
-  const list = await fetchParentUpcomingAppointments(1);
-  return list.length ? list[0] : null;
+export async function fetchParentNextAppointment(): Promise<ParentUpcomingAppointment | null> {
+  const res = await api.get<ParentUpcomingAppointmentsResponse>(
+    "/parents/appointments/upcoming",
+    { params: { limit: 1 } }
+  );
+  return res.data.items?.[0] ?? null;
 }
 
 // ---------- Cancel ----------

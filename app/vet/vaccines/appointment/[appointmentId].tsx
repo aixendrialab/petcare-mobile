@@ -1,0 +1,2 @@
+import VetAppointmentVaccinationContextScreen from "@/src/features/vaccines/screens/VetAppointmentVaccinationContextScreen";
+export default VetAppointmentVaccinationContextScreen;

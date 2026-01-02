@@ -1,65 +1,54 @@
 // app/_layout.tsx
-import React, { useEffect } from 'react'
-import { Pressable, Text, View } from 'react-native'
-import { Stack, usePathname, useRouter, Link } from 'expo-router'
-import { AuthProvider, useAuth } from '@/src/auth'
-
-// import HeaderMenu from '@/src/components/HeaderMenu' // keep if you use /settings
+import React from "react";
+import { Pressable, Text, View } from "react-native";
+import { Stack, usePathname, Link, Redirect } from "expo-router";
+import { AuthProvider, useAuth } from "@/src/auth";
+import RoleSwitcherButton from "@/src/components/RoleSwitcherButton";
 
 function Gate({ children }: { children: React.ReactNode }) {
-  const { state } = useAuth()
-  const router = useRouter()
-  const pathname = usePathname() || ''
-  const top = pathname.split('/')[1] || '' // '', 'auth', 'who-am-i', '<role>'
+  const { state } = useAuth();
+  const pathname = usePathname() || "";
+  const top = pathname.split("/")[1] || ""; // '', 'auth', 'who-am-i', '<role>'
 
-  useEffect(() => {
-    // 1) Guests can only be on /auth/*
-    if (state.status === 'guest') {
-      if (top !== 'auth') router.replace('/auth/login' as any)
-      return
+  // Decide redirect target (if any) WITHOUT calling router.replace()
+  let redirectTo: string | null = null;
+
+  // 1) Guests can only be on /auth/*
+  if (state.status === "guest") {
+    if (top !== "auth") redirectTo = "/auth/login";
+  }
+
+  // 2) Authed but no active role → must pick one
+  const activeRole = state.active?.role;
+  if (!redirectTo && state.status === "authed" && !activeRole) {
+    if (top !== "who-am-i") redirectTo = "/who-am-i";
+  }
+
+  // 3) Profile complete → if sitting on /auth, /who-am-i or root, send to home
+  if (!redirectTo && state.status === "authed" && activeRole) {
+    if (top === "auth" || top === "who-am-i" || top === "") {
+      const target = `/${activeRole}/home`;
+      if (pathname !== target) redirectTo = target;
     }
+  }
 
-    // 2) Authed but no active role → must pick one
-    const activeRole = state.active?.role
-    if (!activeRole) {
-      if (top !== 'who-am-i') router.replace('/who-am-i' as any)
-      return
-    }
-
-    // 3) Authed + active: profile gate
-
-    // 4) Profile complete → if sitting on /auth, /who-am-i or root, send to home
-    if (top === 'auth' || top === 'who-am-i' || top === '') {
-      if (pathname !== `/${activeRole}/home`) {
-        router.replace(`/${activeRole}/home` as any)
-      }
-    }
-  }, [
-    state.status,
-    state.active?.role,
-    state.user?.name,
-    state.user?.email,
-    pathname,
-    top,
-    router,
-  ])
-
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {redirectTo ? <Redirect href={redirectTo as any} /> : null}
+    </>
+  );
 }
-
-// NEW: context-aware header action
-import RoleSwitcherButton from '@/src/components/RoleSwitcherButton'; // <-- use your existing component
 
 function HeaderRight() {
   const { state, logout } = useAuth();
 
-  if (state.status !== 'authed') return null;
+  if (state.status !== "authed") return null;
 
   const activeRole = state.active?.role;
   const inFunnel = !activeRole;
 
   if (inFunnel) {
-    // Show Logout during the who-am-i / profile funnel
     return (
       <Pressable
         onPress={logout}
@@ -72,12 +61,15 @@ function HeaderRight() {
     );
   }
 
-  // After funnel: show role switcher + settings
   return (
-    <View style={{ flexDirection:'row', alignItems:'center' }}>
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
       <RoleSwitcherButton />
       <Link href="/settings" asChild>
-        <Pressable hitSlop={10} accessibilityLabel="Open settings" style={{ paddingHorizontal: 12 }}>
+        <Pressable
+          hitSlop={10}
+          accessibilityLabel="Open settings"
+          style={{ paddingHorizontal: 12 }}
+        >
           <Text style={{ fontSize: 18 }}>⚙️</Text>
         </Pressable>
       </Link>
@@ -85,18 +77,17 @@ function HeaderRight() {
   );
 }
 
-
 export default function RootLayout() {
   return (
     <AuthProvider>
       <Gate>
         <Stack
           screenOptions={{
-            headerTitle: 'PetCare',
+            headerTitle: "PetCare",
             headerRight: () => <HeaderRight />,
           }}
         />
       </Gate>
     </AuthProvider>
-  )
+  );
 }

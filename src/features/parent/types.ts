@@ -112,5 +112,40 @@ export interface ParentRecentConsult {
   diagnosis?: string | null;
 }
 
+export interface ParentUpcomingAppointment {
+  id: number;
 
+  pet_id: number;
+  parent_id: number;
+  vet_id: number;
 
+  pet_name: string;
+  vet_name: string;
+
+  location_id: number | null;
+  location_name: string | null;
+
+  start_ts: string;
+  end_ts: string;
+
+  mode: "in_person" | "video" | string;
+
+  slot_id: string;
+
+  calendar_state:
+    | "BOOKED"
+    | "CANCELLED_BY_PARENT"
+    | "CANCELLED_BY_VET"
+    | "COMPLETED"
+    | "NO_SHOW"
+    | "ARRIVED"
+    | "IN_CONSULT"
+    | string;
+
+  visit_state: string | null;
+  notes: string | null;
+}
+
+export type ParentUpcomingAppointmentsResponse = {
+  items: ParentUpcomingAppointment[];
+};

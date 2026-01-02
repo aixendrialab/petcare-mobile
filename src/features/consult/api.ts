@@ -38,10 +38,6 @@ export async function loadConsultData(appointment_id: number, pet_id: number) {
   };
 }
 
-export async function saveConsult(payload: ConsultSaveInput) {
-  return api.post('/consults', payload);
-}
-
 export async function saveConsultDraft(payload: ConsultSaveInput) {
   return api.post('/consults/save', payload);
 }
