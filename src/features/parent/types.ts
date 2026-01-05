@@ -1,30 +1,18 @@
 // src/features/parent/types.ts
 
-export type ParentPet = {
-  id?: number;
+import { ParentPet } from "./pets/types";
 
-  name: string;
-  breed?: string;
-  dob?: string;
-
-  gender?: '' | 'male' | 'female' | 'unknown';
-
-  vaccine_status?: string;
-  rewards?: string;
-
-  picture_uri?: string;
-  _local_uri?: string;   // for preview
-
-  microchip?: string;
-  blood_group?: string;
-  allergies?: string;
-  chronic_conditions?: string;
-  behavior_notes?: string;
-  color_markings?: string;
-
-  weight_kg?: number;
+export type Rx = {
+  id: number;
+  drug: string;
+  status: string;
 };
 
+export type Order = {
+  id: number;
+  status: string;
+  total: number;
+};
 
 export type ParentProfile = {
   id?: number
@@ -112,6 +100,8 @@ export interface ParentRecentConsult {
   diagnosis?: string | null;
 }
 
+export type ParentRecentConsultsResponse = { items: ParentRecentConsult[] };
+
 export interface ParentUpcomingAppointment {
   id: number;
 
@@ -149,3 +139,5 @@ export interface ParentUpcomingAppointment {
 export type ParentUpcomingAppointmentsResponse = {
   items: ParentUpcomingAppointment[];
 };
+
+

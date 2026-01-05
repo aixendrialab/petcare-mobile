@@ -1,6 +1,6 @@
 // src/state/parent.ts
 import { create } from 'zustand'
-import type { PetDraft } from '@/src/components/PetRow'  // ✅ single source of truth
+import type { PetDraft } from '@/src/features/parent/pets/components/PetRow'  // ✅ single source of truth
 
 type ParentStore = {
   // account slice

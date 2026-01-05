@@ -1,5 +1,5 @@
 // src/features/vaccines/api.ts
-import { get, post } from "@/src/api";
+import api, { get, post } from "@/src/api";
 import type {
   VaccinesDueResponse,
   VaccinesSummaryResponse,
@@ -13,11 +13,18 @@ import type {
   VetConfirmPlanOut,
   CreateVetVaccinationRecordIn,
   CreateVetVaccinationRecordOut,
+  VaccineDueItem,
 } from "./types";
 
 // Parent
-export const fetchVaccinesDue = (limit = 3) =>
-  get<VaccinesDueResponse>(`/vaccines/due?mine=1&limit=${limit}`);
+export async function fetchVaccinesDue(limit = 3, upcomingDays = 30): Promise<VaccineDueItem[]> {
+  const res = await api.get<VaccinesDueResponse>("/vaccines/due", {
+    params: { mine: 1, limit, upcoming_days: upcomingDays },
+  });
+
+  // IMPORTANT: always return an array
+  return res.data?.items ?? [];
+}
 
 export const fetchVaccinesSummary = () =>
   get<VaccinesSummaryResponse>(`/vaccines/summary?mine=1`);

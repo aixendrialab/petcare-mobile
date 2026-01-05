@@ -1,3 +1,5 @@
+import { PetSummary } from "../parent/pets/types";
+
 // src/features/consult/types.ts
 export type AppointmentMode = 'IN_CLINIC' | 'VIDEO';
 
@@ -11,36 +13,6 @@ export interface AppointmentSummary {
 }
 
 export type Sex = 'male' | 'female' | 'unknown' | '';
-
-export interface PetSummary {
-  id: number;
-  name: string;
-
-  species?: string;     // optional – your schema may or may not have it
-  breed?: string;
-
-  sex: Sex;
-  ageYears?: number;
-
-  avatarUrl?: string;
-
-  // Ownership
-  ownerName: string;
-  ownerPhone?: string;
-
-  // Medical profile
-  microchip?: string;
-  blood_group?: string;
-
-  allergies: string[];          // always normalized to array in mapper
-  chronicConditions: string[];  // same
-
-  behaviourNotes?: string;
-  color_markings?: string;
-
-  weight_kg?: number;
-}
-
 
 export interface PastConsultSummary {
   id: number;

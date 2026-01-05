@@ -4,7 +4,7 @@ import { View, Text, ActivityIndicator, ScrollView } from 'react-native'
 import { Screen, Field, Btn, Card } from '@/src/ui'
 import { fetchParentProfile, saveParentProfile } from '../api'
 import { ParentProfile } from '../types'
-import PetRow from '@/src/components/PetRow'
+import PetRow from '@/src/features/parent/pets/components/PetRow'
 import { router } from 'expo-router'
 
 export default function ParentProfileScreen() {
@@ -45,6 +45,7 @@ function addPet() {
       {
         name: '',
         breed: '',
+        species: '',
         dob: '',
         gender: '',
         vaccine_status: '',

@@ -2,18 +2,16 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, FlatList, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { api } from "@/src/api";
 import { useAuth } from "@/src/auth";
-import { ParentRecentConsult, ParentUpcomingAppointment } from "@/src/features/parent/types";
+import { Order, ParentRecentConsult, ParentUpcomingAppointment, Rx } from "@/src/features/parent/types";
+import { ParentPet } from "@/src/features/parent/pets/types";
 import { fetchParentNextAppointment, fetchParentRecentConsults } from "@/src/features/parent/api";
+import { fetchParentPets } from '@/src/features/parent/pets/api';
 import { fetchVaccinesDue } from "@/src/features/vaccines/api";
 import type { VaccineDueItem } from "@/src/features/vaccines/types";
 import { Card } from "react-native-paper";
 import { Tile } from "@/src/ui.paper";
-
-type Pet = { id: number; name: string; breed?: string; picture_uri?: string };
-type Rx = { id: number; drug: string; status: string };
-type Order = { id: number; status: string; total: number };
+import { fetchMyOrders } from "@/src/features/commerce/api";
 
 function QuickAction({
   label,
@@ -46,7 +44,7 @@ export default function ParentHome() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [pets, setPets] = useState<Pet[]>([]);
+  const [pets, setPets] = useState<ParentPet[]>([]);
   const [nextAppt, setNextAppt] = useState<ParentUpcomingAppointment | null>(null);
 
   const [vaccinesDue, setVaccinesDue] = useState<VaccineDueItem[]>([]);
@@ -59,16 +57,21 @@ export default function ParentHome() {
   }, []);
 
   useEffect(() => {
-    api.get("/me/pets").then((r) => setPets(r.data.pets || [])).catch(() => setPets([]));
+    //api.get("/me/pets").then((r) => setPets(r.data.pets || [])).catch(() => setPets([]));
+
+    fetchParentPets().then((pets) => setPets(pets)).catch(() => setPets([]));
+
 
     // ✅ use new vaccines feature API (not raw api.get)
     fetchVaccinesDue()
       .then((items) => setVaccinesDue(items || []))
       .catch(() => setVaccinesDue([]));
 
-    api.get("/erx?mine=1").then((r) => setRx(r.data.items || [])).catch(() => setRx([]));
+    //api.get("/erx?mine=1").then((r) => setRx(r.data.items || [])).catch(() => setRx([]));
 
-    api.get("/orders?mine=1&limit=5").then((r) => setOrders(r.data.items || [])).catch(() => setOrders([]));
+    //api.get("/orders?mine=1&limit=5").then((r) => setOrders(r.data.items || [])).catch(() => setOrders([]));
+
+    fetchMyOrders().then((items) => setOrders(items || [])).catch(() => setOrders([]));
   }, []);
 
   useEffect(() => {
@@ -95,7 +98,15 @@ export default function ParentHome() {
           keyExtractor={(p) => String(p.id)}
           style={{ marginTop: 12 }}
           renderItem={({ item }) => (
-            <View style={{ marginRight: 12, alignItems: "center" }}>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/parent/pets/[petId]",
+                  params: { petId: String(item.id) },
+                } as any)
+              }
+              style={{ marginRight: 12, alignItems: "center" }}
+            >
               {item.picture_uri ? (
                 <Image source={{ uri: item.picture_uri }} style={{ width: 64, height: 64, borderRadius: 32 }} />
               ) : (
@@ -103,10 +114,35 @@ export default function ParentHome() {
               )}
               <Text style={{ marginTop: 6, fontWeight: "600" }}>{item.name}</Text>
               <Text style={{ opacity: 0.6, fontSize: 12 }}>{item.breed ?? "—"}</Text>
-            </View>
+            </Pressable>
           )}
-          ListEmptyComponent={<Text style={{ opacity: 0.7 }}>Add your first pet from Profile → Pets</Text>}
+          ListFooterComponent={() => (
+            <Pressable
+              onPress={() => router.push("/parent/pets/add" as any)}
+              style={{ marginRight: 12, alignItems: "center" }}
+            >
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: "#cfcfcf",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#fafafa",
+                }}
+              >
+                <Text style={{ fontSize: 26, fontWeight: "700", opacity: 0.7 }}>+</Text>
+              </View>
+              <Text style={{ marginTop: 6, fontWeight: "600" }}>Add</Text>
+              <Text style={{ opacity: 0.6, fontSize: 12 }}>Pet</Text>
+            </Pressable>
+          )}
+          ListEmptyComponent={<Text style={{ opacity: 0.7 }}>Add your first pet</Text>}
         />
+
       </View>
 
       {/* Quick Actions */}
@@ -126,8 +162,22 @@ export default function ParentHome() {
         <QuickAction label="Recent Visits" subtitle="Your past consultations" onPress={() => router.push("/parent/visits")} />
         <QuickAction label="Televisit" subtitle="Start a consult" onPress={() => router.push("/parent/televisit" as any)} />
         <QuickAction label="Upload Report" subtitle="PDF / Images" onPress={() => router.push("/parent/reports" as any)} />
-        <QuickAction label="Refill Meds" subtitle="e-Rx & orders" onPress={() => router.push("/parent/prescriptions" as any)} />
-        <QuickAction label="Order Food" subtitle="Nutrition plans" onPress={() => router.push("/parent/cart" as any)} />
+        <QuickAction label="Shop" subtitle="Food • Accessories • Meds" onPress={() => router.push("/parent/shop" as any)} />
+        <QuickAction label="Cart" subtitle="Review items" onPress={() => router.push("/parent/cart" as any)} />
+        <QuickAction label="Orders" subtitle="Track deliveries" onPress={() => router.push("/parent/orders" as any)} />
+
+        <QuickAction
+          label="Refill Meds"
+          subtitle="Browse medicines"
+          onPress={() => router.push({ pathname: "/parent/shop/list", params: { category: "MEDICINE" } } as any)}
+        />
+
+        <QuickAction
+          label="Order Food"
+          subtitle="Nutrition & diet"
+          onPress={() => router.push({ pathname: "/parent/shop/list", params: { category: "FOOD" } } as any)}
+        />
+
       </ScrollView>
 
       {/* Only One Upcoming Appointment */}
@@ -183,9 +233,9 @@ export default function ParentHome() {
         ) : (
           vaccinesDue.slice(0, 3).map((v) => (
             <Row
-              key={String(v.id)}
+              key={String(v.plan_item_id)}
               primary={`${v.pet_name}: ${v.vaccine_name}`}
-              secondary={`Due ${v.due_on}`}
+              secondary={`${v.status === "DUE" ? "Due" : "Upcoming"} ${v.due_on}`}
             />
           ))
         )}

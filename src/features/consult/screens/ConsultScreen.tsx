@@ -3,13 +3,14 @@ import { Btn, Screen, Tabs } from '@/src/ui';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { completeConsult, loadConsultData, saveConsult, saveConsultDraft } from '../api';
-import { PetSummaryCard } from '../components/PetSummaryCard';
+import { PetSummaryCard } from '../../parent/pets/components/PetSummaryCard';
 import { PrescriptionCard } from '../components/PrescriptionCard';
 import { CurrentVisitCard } from '../components/CurrentVisitCard';
 import { HistoryCard } from '../components/HistoryCard';
 import { VaccinationCard } from '../components/VaccinationCard';
 import { AttachmentsCard } from '../components/AttachmentsCard';
-import { PetSummary, VaccineStatus, VisitHistory } from '../types';
+import { VaccineStatus, VisitHistory } from '../types';
+import { PetSummary } from "../../parent/pets/types";
 import { View } from 'react-native';
 
 

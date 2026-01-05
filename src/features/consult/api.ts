@@ -2,7 +2,6 @@
 import { api } from '@/src/api';
 import {
   AppointmentSummary,
-  PetSummary,
   PastConsultSummary,
   VaccineStatus,
   ConsultContext,
@@ -10,6 +9,7 @@ import {
   ConsultSaveInput,
   VisitHistory,
 } from './types';
+import { PetSummary } from "../parent/pets/types";
 
 export async function fetchConsultContext(
   appointmentId: number,

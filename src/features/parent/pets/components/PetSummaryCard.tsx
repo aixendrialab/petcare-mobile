@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Card, Text, Chip, Avatar } from '@/src/ui';
-import { PetSummary } from '../types';
+import { PetSummary } from "../types";
 
 interface Props {
   pet: PetSummary;

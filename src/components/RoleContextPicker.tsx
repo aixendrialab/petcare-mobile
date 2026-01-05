@@ -2,7 +2,7 @@
 import React from 'react'
 import { View, Pressable, Text } from 'react-native'
 import { Card } from '@/src/ui'
-import { RoleBinding } from '@/src/auth'
+import  {RoleBinding} from '@/src/auth'
 
 export function RoleContextPicker({ items, onPick }:{ items: RoleBinding[]; onPick:(rb:RoleBinding)=>void }){
   return (

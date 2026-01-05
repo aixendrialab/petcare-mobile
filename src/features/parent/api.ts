@@ -2,14 +2,14 @@
 import { api } from '@/src/api'
 import { 
   ParentProfile, 
-  ParentPet, 
   Appointment, 
   Invoice, 
   Prescription,  
   ParentConsultDetail, 
   ParentRecentConsult, 
   ParentUpcomingAppointment, 
-  ParentUpcomingAppointmentsResponse } from './types'
+  ParentUpcomingAppointmentsResponse, 
+  ParentRecentConsultsResponse} from './types'
 import { Appt } from './booking/types'
 
 // ---------- Profile ----------
@@ -20,24 +20,6 @@ export async function fetchParentProfile(): Promise<ParentProfile> {
 
 export async function saveParentProfile(data: ParentProfile): Promise<void> {
   await api.put('/parents/profile', data)
-}
-
-// ---------- Pets ----------
-export async function fetchParentPets(): Promise<ParentPet[]> {
-  const res = await api.get('/parents/pets')
-  return res.data.pets || []
-}
-
-export async function addParentPet(pet: ParentPet): Promise<void> {
-  await api.post('/parents/pets', { pets: [pet] })
-}
-
-export async function replaceParentPets(pets: ParentPet[]): Promise<void> {
-  await api.put('/parents/pets', { pets })
-}
-
-export async function deleteParentPet(petId: number): Promise<void> {
-  await api.delete(`/parents/pets/${petId}`)
 }
 
 // ---------- Appointments ----------
@@ -110,8 +92,6 @@ export async function parentRescheduleAppointment(
 
 // src/features/parent/api.ts
 export async function fetchParentRecentConsults(limit = 5): Promise<ParentRecentConsult[]> {
-  const { data } = await api.get("/parents/consults/recent", {
-    params: { limit }
-  });
-  return data || [];
+  const res = await api.get<ParentRecentConsultsResponse>("/parents/consults/recent", { params: { limit } });
+  return res.data.items ?? [];
 }

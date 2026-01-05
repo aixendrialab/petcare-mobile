@@ -4,7 +4,7 @@ import { ScrollView, View } from 'react-native'
 import { useAuth } from '@/src/auth'
 import { api } from '@/src/api'
 import { Field, Card, Btn } from '@/src/ui'
-import PetRow, { PetDraft } from '@/src/components/PetRow'
+import PetRow, { PetDraft } from '@/src/features/parent/pets/components/PetRow'
 
 export default function ProfileSettings() {
   const { user, fetchMe } = useAuth()
