@@ -99,7 +99,7 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
       <View style={{ height: 12 }} />
 
       <FlatList
-        data={order.items ?? []}
+        data={order.items}
         keyExtractor={(x) => String(x.catalog_item_id)}
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -107,10 +107,18 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
             <Text style={{ opacity: 0.7, marginTop: 6 }}>
               Qty: {item.qty} • ₹ {item.unit_price}
             </Text>
-            <Text style={{ marginTop: 6, fontWeight: "900" }}>₹ {item.line_total}</Text>
+            <Text style={{ marginTop: 6, fontWeight: "900" }}>
+              ₹ {item.line_total}
+            </Text>
           </View>
         )}
+        ListEmptyComponent={
+          <Text style={{ opacity: 0.6, marginTop: 12 }}>
+            No items in this order
+          </Text>
+        }
       />
+
 
       {next ? (
         <Pressable style={styles.primaryBtn} onPress={advance} disabled={busy}>

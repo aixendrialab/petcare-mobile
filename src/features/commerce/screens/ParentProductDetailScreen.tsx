@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { addToCart, fetchShopItem } from "../api";
-import type { CatalogItem } from "../types";
+import type { CatalogItemDetail } from "../types";
+import { ShopItemShell } from "../components/shopItem/ShopItemShell";
 
 export default function ParentProductDetailScreen() {
   const router = useRouter();
@@ -10,9 +11,12 @@ export default function ParentProductDetailScreen() {
   const id = Number(params.id);
 
   const [loading, setLoading] = useState(true);
-  const [item, setItem] = useState<CatalogItem | null>(null);
+  const [item, setItem] = useState<CatalogItemDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [qty, setQty] = useState(1);
+  const [wished, setWished] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -31,31 +35,22 @@ export default function ParentProductDetailScreen() {
   useEffect(() => {
     if (!id) return;
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function onAddToCart() {
+  function onBack() {
+    if ((router as any).canGoBack?.()) router.back();
+    else router.replace("/parent/shop/list");
+  }
+
+  async function onAddToCart(qtyToAdd: number = 1) {
     if (!item) return;
     setBusy(true);
     try {
-      await addToCart(item.id, 1);
+      await addToCart(item.id, qtyToAdd);
       router.push("/parent/cart");
-    } catch (e) {
-      // keep silent for now; add toast later
     } finally {
       setBusy(false);
     }
-  }
-
-  function onBackToList() {
-    // ✅ Best behavior: go back to the exact list page with its params/state
-    if (router.canGoBack?.()) {
-      router.back();
-      return;
-    }
-
-    // Fallback if this page was opened directly (rare in app, more common in web)
-    router.replace("/parent/shop/list");
   }
 
   if (loading) {
@@ -71,61 +66,53 @@ export default function ParentProductDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={{ color: "tomato" }}>{error || "Not found"}</Text>
-        <Pressable style={styles.btn} onPress={load}>
-          <Text>Retry</Text>
-        </Pressable>
-
-        <Pressable style={[styles.btn, { marginTop: 10 }]} onPress={onBackToList}>
-          <Text>Back to List</Text>
-        </Pressable>
+        <Pressable style={styles.btn} onPress={load}><Text>Retry</Text></Pressable>
+        <Pressable style={[styles.btn, { marginTop: 10 }]} onPress={onBack}><Text>Back</Text></Pressable>
       </View>
     );
   }
 
+  const ratingAvg = item.rating?.avg ?? item.reviews?.summary?.avg ?? 0;
+  const ratingCount = item.rating?.count ?? item.reviews?.summary?.count ?? 0;
+  const inStock = item.seller?.delivery_promise?.in_stock ?? true;
+  const boughtLabel = item.bought_recently?.label;
+
+  const promise = item?.seller?.delivery_promise;
+  const etaText = promise?.eta_text ?? "Fast delivery";
+  const shippingFeeText = promise?.shipping_fee ? `₹${promise.shipping_fee.amount} delivery` : "Free delivery";
+
   return (
-    <View style={styles.page}>
-      <Text style={styles.h1}>{item.name}</Text>
-      <Text style={styles.sub}>
-        {item.category} • {item.kind}
-      </Text>
+    <ShopItemShell
+      item={item}
+      ratingAvg={ratingAvg}
+      ratingCount={ratingCount}
+      boughtLabel={boughtLabel}
+      busy={busy}
+      inStock={inStock}
+      onGoToCart={() => router.push("/parent/cart")}
 
-      <View style={{ height: 12 }} />
+      qty={qty}
+      onChangeQty={setQty}
 
-      <Text style={styles.desc}>{item.description || "—"}</Text>
+      wished={wished}
+      onToggleWish={() => setWished((v) => !v)}
 
-      <View style={{ height: 12 }} />
-      <Text style={styles.price}>₹ {item.price}</Text>
+      deliverTo={"Ram Satish • Vizag • 5300xx"}
+      onChangeDeliverTo={() => router.push("/parent/profile" as any)}
+      etaText={etaText}
+      shippingFeeText={shippingFeeText}
 
-      {!!item.rx_required && (
-        <Text style={{ marginTop: 10, color: "orange", fontWeight: "700" }}>
-          Prescription required
-        </Text>
-      )}
-
-      <View style={{ flex: 1 }} />
-
-      <Pressable style={styles.primaryBtn} onPress={onAddToCart} disabled={busy}>
-        <Text style={styles.primaryBtnText}>{busy ? "Adding…" : "Add to Cart"}</Text>
-      </Pressable>
-
-      <Pressable style={styles.secondaryBtn} onPress={onBackToList}>
-        <Text style={styles.secondaryBtnText}>Back to List</Text>
-      </Pressable>
-    </View>
+      onBack={onBack}
+      onAddToCart={(q) => onAddToCart(q)}
+      onBuyNow={(q) => onAddToCart(q)} // placeholder: same for now
+      onOpenItem={(pid) =>
+        router.push({ pathname: "/parent/shop/item/[id]", params: { id: String(pid) } })
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, padding: 16 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  h1: { fontSize: 20, fontWeight: "800" },
-  sub: { marginTop: 6, opacity: 0.7 },
-  desc: { marginTop: 8, opacity: 0.85, lineHeight: 20 },
-  price: { fontSize: 18, fontWeight: "900" },
   btn: { marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)" },
-
-  primaryBtn: { padding: 12, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)" },
-  primaryBtnText: { textAlign: "center", fontWeight: "900" },
-  secondaryBtn: { marginTop: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
-  secondaryBtnText: { textAlign: "center", fontWeight: "700", opacity: 0.9 },
 });
