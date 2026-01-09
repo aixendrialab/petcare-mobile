@@ -1,65 +1,50 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, TextInput, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { fetchShopItems, addToCart } from "../api";
-import type { CatalogItem } from "../types";
+import { fetchShopItems } from "../api";
+import type { ProductCard, CatalogCategory } from "../types";
 import { Badge } from "../components/Badge";
-import { Stars } from "../components/stars";
+import { Stars } from "../components/Stars";
 
-function CatalogListRowCard({
+function ProductRowCard({
   item,
   onOpen,
-  onQuickAdd,
-  adding,
 }: {
-  item: CatalogItem;
+  item: ProductCard;
   onOpen: () => void;
-  onQuickAdd: () => void;
-  adding: boolean;
 }) {
-  const img = item.image_uri || "https://picsum.photos/seed/petcare/240/240";
-  const inStock = item.stock_qty === undefined ? true : (item.stock_qty ?? 0) > 0;
+  const img = item.primary_image || "https://picsum.photos/seed/petcare/240/240";
+  const price = item.best_price?.amount ?? 0;
+  const mrp = item.mrp?.amount ?? 0;
 
   return (
     <Pressable style={styles.rowCard} onPress={onOpen}>
       <Image source={{ uri: img }} style={styles.thumb} />
 
       <View style={{ flex: 1 }}>
-        <Text style={styles.title} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
 
-        {!!item.store_name && (
+        {!!item.brand && (
           <Text style={styles.muted} numberOfLines={1}>
-            Sold by {item.store_name}
+            {item.brand}
           </Text>
         )}
 
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-          <Stars value={item.rating_avg ?? 4.2} />
+          <Stars value={item.rating_avg ?? 0} />
           <Text style={styles.muted}> ({item.rating_count ?? 0})</Text>
         </View>
 
         <View style={styles.priceRow}>
-          <Text style={styles.price}>₹ {Math.round(item.price)}</Text>
-          {!!item.mrp && item.mrp > item.price ? <Text style={styles.mrp}>₹ {Math.round(item.mrp)}</Text> : null}
+          <Text style={styles.price}>₹ {Math.round(price)}</Text>
+          {mrp > price ? <Text style={styles.mrp}>₹ {Math.round(mrp)}</Text> : null}
           {!!item.discount_pct ? <Text style={styles.off}>-{item.discount_pct}%</Text> : null}
         </View>
 
         <View style={styles.badgeRow}>
-          {!!item.limited_deal && <Badge text="Limited time deal" variant="deal" />}
-          {!!item.rx_required && <Badge text="RX required" variant="rx" />}
-          <Text style={[styles.stock, { color: inStock ? "lightgreen" : "tomato" }]}>
-            {inStock ? "In stock" : "Out of stock"}
-          </Text>
+          {!!item.badges?.length && <Badge text={item.badges[0]} variant="deal" />}
         </View>
       </View>
-
-      <Pressable
-        style={[styles.addBtn, (!inStock || adding) && { opacity: 0.5 }]}
-        disabled={!inStock || adding}
-        onPress={onQuickAdd}
-      >
-        <Text style={styles.addBtnText}>{adding ? "…" : "Add"}</Text>
-      </Pressable>
     </Pressable>
   );
 }
@@ -72,12 +57,11 @@ export default function ParentShopListScreen() {
 
   const [q, setQ] = useState(initialQ);
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [items, setItems] = useState<ProductCard[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [addingId, setAddingId] = useState<number | null>(null);
 
-  const ALLOWED = new Set(["ACCESSORY", "MEDICINE", "FOOD"]);
-  const safeCategory = ALLOWED.has(category) ? category : "";
+  const ALLOWED = new Set<CatalogCategory>(["ACCESSORY", "MEDICINE", "FOOD", "SERVICE"]);
+  const safeCategory = (ALLOWED.has(category as any) ? category : "") as CatalogCategory | "";
 
   async function load() {
     setLoading(true);
@@ -102,15 +86,6 @@ export default function ParentShopListScreen() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
-
-  async function quickAdd(item: CatalogItem) {
-    setAddingId(item.id);
-    try {
-      await addToCart(item.id, 1);
-    } finally {
-      setAddingId(null);
-    }
-  }
 
   return (
     <View style={styles.page}>
@@ -145,14 +120,14 @@ export default function ParentShopListScreen() {
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(x) => String(x.id)}
+          keyExtractor={(x) => String(x.product_id)}
           contentContainerStyle={{ paddingBottom: 24 }}
           renderItem={({ item }) => (
-            <CatalogListRowCard
+            <ProductRowCard
               item={item}
-              adding={addingId === item.id}
-              onOpen={() => router.push({ pathname: "/parent/shop/item/[id]", params: { id: String(item.id) } })}
-              onQuickAdd={() => quickAdd(item)}
+              onOpen={() =>
+                router.push({ pathname: "/parent/shop/item/[id]", params: { id: String(item.product_id) } })
+              }
             />
           )}
           ListEmptyComponent={<Text style={{ opacity: 0.7, marginTop: 10 }}>No items found.</Text>}
@@ -185,8 +160,4 @@ const styles = StyleSheet.create({
   off: { fontWeight: "900", color: "tomato" },
 
   badgeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" },
-  stock: { fontWeight: "900", opacity: 0.95 },
-
-  addBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.12)" },
-  addBtnText: { fontWeight: "900" },
 });

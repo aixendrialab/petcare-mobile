@@ -1,53 +1,294 @@
 import { ProviderRole } from "../providers/types";
 
 /** =========================
- *  Existing commerce primitives
+ *  Common primitives
  *  ========================= */
 
-export type CatalogKind = "PRODUCT" | "SERVICE";
-export type CatalogCategory = "MEDICINE" | "FOOD" | "ACCESSORY" | "BOARDING" | "DIET_PLAN";
+export type Money = { amount: number; currency: "INR" };
 
-export interface ProviderSummary {
+export type RatingSummary = {
+  avg: number;
+  count: number;
+};
+
+export type MediaType = "IMAGE" | "VIDEO";
+
+/** =========================
+ *  Shop categories (v2)
+ *  ========================= */
+
+export type CatalogCategory = "FOOD" | "ACCESSORY" | "MEDICINE" | "SERVICE";
+
+/** =========================
+ *  Shop Home (server: /shop/home)
+ *  ========================= */
+
+export type ProductCard = {
+  product_id: number;
+  category: CatalogCategory;
+  title: string;
+  brand?: string | null;
+  primary_image?: string | null;
+
+  best_price?: Money | null;
+  mrp?: Money | null;
+  discount_pct?: number | null;
+
+  rating_avg?: number | null;
+  rating_count?: number | null;
+
+  badges?: string[];
+};
+
+export type ShopHomeSection = {
+  key: string;
+  title: string;
+  subtitle?: string | null;
+  items: ProductCard[];
+  cta?: { title: string; route: string } | null;
+};
+
+export type ShopHome = {
+  deliver_to_text?: string;
+  hero?: ShopHomeHero | null;
+  discount_hints?: DiscountHint[];
+  sections: ShopHomeSection[];
+};
+
+
+/** =========================
+ *  Product detail (server: /shop/products/{product_id})
+ *  ========================= */
+
+export type BrandSummary = {
+  id: number;
+  name: string;
+  about?: string | null;
+  logo_uri?: string | null;
+  website?: string | null;
+};
+
+export type TaxInfo = {
+  code?: string | null;      // e.g. GST_18
+  gst_pct?: number | null;   // e.g. 18
+  hsn_code?: string | null;
+};
+
+export type ProductMedia = {
+  media_type: MediaType;
+  uri: string;
+  label?: string | null;
+  sort_order?: number;
+};
+
+export type ProductSpec = {
+  spec_group: string; // "Top highlights" | "Product details" | ...
+  key: string;
+  value: string;
+  sort_order?: number;
+};
+
+export type SkuOption = {
+  sku_id: number;
+  variant_key?: string | null;
+  variant_value?: string | null;
+  pack_label?: string | null;
+  sku_code?: string | null;
+};
+
+export type StoreSummary = {
   id: number;
   role: ProviderRole;
   display_name: string;
-  city?: string;
-  rating?: number;
-}
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
 
-export interface CatalogItem {
+  logo_uri?: string | null;
+  about?: string | null;
+
+  rating_avg?: number | null;
+  rating_count?: number | null;
+  orders_30d?: number | null;
+
+  badges?: string[];
+};
+
+export type Promotion = {
   id: number;
-  provider_id: number;
-  kind: CatalogKind;
+  title: string;
+  subtitle?: string | null;
+  promo_type: "DISCOUNT" | "COUPON" | "BANK" | "BUNDLE";
+  discount_pct?: number | null;
+  discount_amount?: Money | null;
+  min_qty: number;
+};
+
+export type FulfillmentPromise = {
+  shipping_fee?: Money | null;
+  eta_text?: string | null;
+  eta_days_min?: number | null;
+  eta_days_max?: number | null;
+  returnable?: boolean | null;
+  warranty_months?: number | null;
+  in_stock?: boolean | null;
+};
+
+export type OfferCard = {
+  offer_id: number;
+  store: StoreSummary;
+  sku: { sku_id: number };
+
+  price: Money;
+  mrp?: Money | null;
+  discount_pct?: number | null;
+
+  stock_qty: number;
+
+  fulfillment?: FulfillmentPromise | null;
+  promotions?: Promotion[];
+};
+
+export type ReviewVoteSummary = {
+  helpful: number;
+  not_helpful: number;
+  my_vote?: boolean | null;
+};
+
+export type ReviewMedia = {
+  media_type: MediaType;
+  uri: string;
+  sort_order?: number;
+};
+
+export type ReviewPreview = {
+  id: number;
+  user_display: string;
+  rating: number;
+  title?: string | null;
+  body: string;
+  created_at: string;
+  is_verified_purchase: boolean;
+
+  media?: ReviewMedia[];
+  votes?: ReviewVoteSummary;
+};
+
+export type ReviewSummary = {
+  rating_avg: number;
+  rating_count: number;
+};
+
+export type QuestionAnswer = {
+  question_id: number;
+  question: string;
+  asked_by: string;
+  asked_at: string;
+
+  answer_id?: number | null;
+  answer?: string | null;
+  answered_by?: string | null;
+  answered_at?: string | null;
+};
+
+export type ProductBlock = {
+  title: string;
+  items: ProductCard[];
+};
+
+export type ProductDetail = {
+  product_id: number;
   category: CatalogCategory;
 
-  name: string;
-  description?: string;
-  price: number; // in INR rupees for now
-  active: boolean;
+  title: string;
+  short_desc?: string | null;
+  description?: string | null;
 
-  rx_required?: boolean; // for MEDICINE
-  image_uri?: string;
+  brand?: BrandSummary | null;
+  brand_text?: string | null;
 
-  // OPTIONAL future enhancements (safe additions; won't break callers)
-  rating_avg?: number;
-  rating_count?: number;
-  mrp?: number;
-  discount_pct?: number;
-  limited_deal?: boolean;
-  store_name?: string;
-  stock_qty?: number;
-}
+  tax?: TaxInfo | null;
+  prescription_required: boolean;
 
-export interface InventoryItem {
-  catalog_item_id: number;
-  stock_qty: number;
-  reorder_level?: number;
+  variant_theme?: string | null;
+  media: ProductMedia[];
+  specs: ProductSpec[];
+  tags: string[];
+  skus: SkuOption[];
 
-  // pharmacy-specific optional fields
-  batch_no?: string;
-  expiry_date?: string; // ISO date
-}
+  offers: OfferCard[];
+
+  review_summary: ReviewSummary;
+  review_previews: ReviewPreview[];
+  bought_recently_label?: string | null;
+
+  qa: QuestionAnswer[];
+
+  frequently_bought_together?: ProductBlock | null;
+  similar_products?: ProductBlock | null;
+  more_to_explore?: ProductBlock | null;
+  top_deals?: ProductBlock | null;
+};
+
+/** =========================
+ *  Cart (server: GET /cart?mine=1)
+ *  ========================= */
+
+export type CartLine = {
+  cart_item_id: number;
+  offer_id: number;
+
+  store: { id: number; display_name: string };
+
+  product_id: number;
+  sku_id: number;
+
+  title: string;
+  variant?: string | null;
+
+  qty: number;
+
+  unit_price: number;
+  currency: string;
+  line_total: number;
+
+  primary_image?: string | null;
+  in_stock: boolean;
+};
+
+export type CartTotals = {
+  items_total: number;
+  discount_total: number;
+  shipping_fee: number;
+  tax_total: number;
+  grand_total: number;
+};
+
+export type Address = {
+  id: number;
+  label?: string | null;
+  recipient: string;
+  phone?: string | null;
+  line1: string;
+  line2?: string | null;
+  landmark?: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+  lat?: number | null;
+  lng?: number | null;
+  is_default: boolean;
+};
+
+export type CartResponse = {
+  items: CartLine[];
+  address?: Address | null;
+  totals: CartTotals;
+};
+
+/** =========================
+ *  Orders (server: /orders, /orders/{id})
+ *  ========================= */
 
 export type OrderStatus =
   | "CREATED"
@@ -57,168 +298,73 @@ export type OrderStatus =
   | "DELIVERED"
   | "CANCELLED";
 
-export interface OrderItem {
-  catalog_item_id: number;
-  name: string;
-  qty: number;
-  unit_price: number;
-  line_total: number;
-}
-
-export interface Order {
+export type OrderListItem = {
   id: number;
-  parent_id: number;
-  provider: ProviderSummary;
-
+  store_id: number;
+  store_name: string;
   status: OrderStatus;
-  total_amount: number;
-  created_at: string; // ISO datetime
+  grand_total: number;
+  currency: string;
+  created_at: string;
+};
+
+export type OrderItem = {
+  product_id: number;
+  sku_id: number;
+  title: string;
+  qty: number;
+
+  unit_price: number;
+  mrp?: number | null;
+  discount_amt: number;
+
+  gst_pct: number;
+  gst_amt: number;
+
+  line_total: number;
+};
+
+export type OrderDetail = {
+  id: number;
+  store: { id: number; display_name: string };
+  status: OrderStatus;
+  created_at: string;
+  currency: string;
+
+  totals: CartTotals;
+
+  address: {
+    label?: string | null;
+    recipient: string;
+    phone?: string | null;
+    line1: string;
+    line2?: string | null;
+    landmark?: string | null;
+    city: string;
+    state: string;
+    pincode: string;
+  };
 
   items: OrderItem[];
-  delivery?: {
-    status: "PENDING" | "OUT_FOR_DELIVERY" | "DELIVERED";
-    tracking_ref?: string;
-    eta?: string; // ISO datetime
-  };
-
-  // pharmacy
-  prescription_required?: boolean;
-  prescription_attached?: boolean;
-}
-
-/** =========================
- *  Rich shop browsing types
- *  (used for Amazon-like UI)
- *  ========================= */
-
-
-export type ShopImage = {
-  id: string;
-  uri: string; // https://...
-  label?: string; // "Front", "Back", etc
 };
 
+export type InventoryItem = {
+  offer_id: number;
+  store_id: number;
+  product_id: number;
+  sku_id: number;
 
-export type MiniItem = {
-  id: number;
-  name: string;
-  price: Money;
-  mrp?: Money; // show discount if mrp > price
-  primary_image?: string;
-  rating?: RatingSummary;
-  badges?: string[]; // ["Limited time deal"]
-};
-
-export type Money = { amount: number; currency: "INR" };
-
-export type RatingSummary = {
-  avg: number; // 0..5
-  count: number;
-  breakdown?: { stars: 1 | 2 | 3 | 4 | 5; pct: number }[];
-};
-
-export type CatalogImage = {
-  id: string;
-  uri: string;
-  label?: string;
-};
-
-export type SpecKV = { k: string; v: string };
-
-export type DiscountHint = {
   title: string;
-  message: string;
-  progress?: { current: Money; target: Money };
-};
+  variant?: string | null;
 
-export type ReviewPreview = {
-  id: number;
-  user_display: string;
-  rating: number;
-  title?: string;
-  body: string;
-  created_at: string;
-  images?: CatalogImage[];
-};
+  stock_qty: number;
+  reorder_level: number;
 
-export type SellerInfo = {
-  seller_id: number;
-  display_name: string;
-  role: ProviderRole;
-  rating?: RatingSummary;
-  badges?: string[];
-  city?: string;
-  returnable?: boolean;
-  delivery_promise?: {
-    eta_text: string;
-    eta_date?: string;
-    shipping_fee?: Money;
-    in_stock?: boolean;
-  };
-};
+  price: number;
+  mrp?: number | null;
+  currency: string;
 
-export type CatalogMiniItem = {
-  id: number;
-  name: string;
-  price: Money;
-  mrp?: Money;
-  primary_image?: string;
-  rating?: RatingSummary;
-  badges?: string[];
-};
-
-export type ShopHome = {
-  as_of: string;
-  hero?: { title: string; subtitle?: string; banner_uri?: string };
-  discount_hints?: DiscountHint[];
-  sections: {
-    key: string;
-    title: string;
-    subtitle?: string;
-    items: CatalogMiniItem[];
-    cta?: { title: string; route: string };
-  }[];
-};
-
-/**
- * ✅ Rich item detail (Amazon-like)
- * Use this ONLY on product detail screen.
- */
-export type CatalogItemDetail = {
-  id: number;
-  name: string;
-  description?: string;
-
-  price: Money;
-  mrp?: Money;
-  discount_badges?: string[];
-  discount_pct?: number;
-  bought_recently?: { label: string };
-
-  images: CatalogImage[];
-
-  rating?: RatingSummary;
-
-  seller: SellerInfo;
-
-  tags?: string[];
-  specs: SpecKV[];
-
-  reviews: {
-    summary: RatingSummary;
-    top?: ReviewPreview[];
-    ask_suggestions?: string[];
-  };
-
-  frequently_bought_together?: {
-    title: string;
-    items: CatalogMiniItem[];
-  };
-
-  similar?: {
-    title: string;
-    items: CatalogMiniItem[];
-  };
+  is_active: boolean;
 };
 
 export type VendorDashboard = {
@@ -226,4 +372,17 @@ export type VendorDashboard = {
   as_of: string;
   kpis: { title: string; value: string; hint?: string; trend?: "up" | "down" | "flat" }[];
   actions: { title: string; caption?: string; route: string; badge?: string }[];
+};
+
+export type DiscountHint = {
+  title: string;
+  message: string;
+  progress?: { current: Money; target: Money };
+};
+
+export type ShopHomeHero = {
+  title: string;
+  subtitle?: string | null;
+  banner_uri?: string | null;
+  route?: string | null;
 };

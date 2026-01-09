@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, ScrollView, Pressable, Text, StyleSheet, Image, FlatList } from "react-native";
-import type { CatalogItemDetail } from "../../types";
+import type { ProductDetail, OfferCard, ProductMedia } from "../../types";
 import { Stars } from "../Stars";
 import { Badge } from "../Badge";
 import { PriceBlock } from "../PriceBlock";
@@ -34,7 +34,8 @@ export function ShopItemShell({
   onBuyNow,
   onOpenItem,
 }: {
-  item: CatalogItemDetail;
+  item: ProductDetail;
+
   ratingAvg: number;
   ratingCount: number;
   boughtLabel?: string;
@@ -59,9 +60,29 @@ export function ShopItemShell({
   onAddToCart: (qty: number) => void;
   onBuyNow: (qty: number) => void;
 
-  onOpenItem: (id: number) => void;
+  onOpenItem: (productId: number) => void;
 }) {
-  const images = item.images ?? [];
+  const images: ProductMedia[] = useMemo(() => {
+    return (item.media ?? []).filter((m) => (m.media_type ?? "IMAGE") === "IMAGE");
+  }, [item.media]);
+
+  /** Best offer is first one (server already orders by price ASC) */
+  const offer: OfferCard | undefined = item.offers?.[0];
+
+  const promoBadges = useMemo(() => {
+    const p = offer?.promotions ?? [];
+    // show max 2 promo titles
+    return p.slice(0, 2).map((x) => x.title).filter(Boolean);
+  }, [offer?.promotions]);
+
+  const primaryBadges = useMemo(() => {
+    // combine promo titles + any generic badges
+    const out: string[] = [];
+    for (const b of promoBadges) out.push(b);
+    return out;
+  }, [promoBadges]);
+
+  const reviewPreview = item.review_previews?.[0];
 
   return (
     <View style={{ flex: 1 }}>
@@ -73,7 +94,7 @@ export function ShopItemShell({
           </Pressable>
 
           <Text style={styles.topTitle} numberOfLines={1}>
-            {item.name}
+            {item.title}
           </Text>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
@@ -88,11 +109,7 @@ export function ShopItemShell({
         </View>
 
         {/* Deliver + promise strip */}
-        <Pressable
-          style={styles.deliverBar}
-          onPress={onChangeDeliverTo}
-          disabled={!onChangeDeliverTo}
-        >
+        <Pressable style={styles.deliverBar} onPress={onChangeDeliverTo} disabled={!onChangeDeliverTo}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <PinIcon size={16} />
             <Text style={styles.deliverTitle} numberOfLines={1}>
@@ -114,7 +131,7 @@ export function ShopItemShell({
             data={images}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(x) => x.id}
+            keyExtractor={(x, idx) => `${x.uri}-${idx}`}
             contentContainerStyle={{ paddingVertical: 8 }}
             renderItem={({ item: img }) => (
               <View style={styles.imageWrap}>
@@ -130,20 +147,27 @@ export function ShopItemShell({
         )}
 
         {/* Title + rating */}
-        <Text style={styles.h1}>{item.name}</Text>
+        <Text style={styles.h1}>{item.title}</Text>
+
+        {!!item.short_desc && (
+          <Text style={[styles.muted, { marginTop: 6, fontWeight: "700" }]} numberOfLines={3}>
+            {item.short_desc}
+          </Text>
+        )}
+
         <View style={styles.metaRow}>
           <Stars value={ratingAvg} size={12} />
-          <Text style={styles.muted}> {ratingAvg.toFixed(1)} </Text>
-          <Text style={styles.muted}>({ratingCount})</Text>
+          <Text style={styles.muted}> {Number.isFinite(ratingAvg) ? ratingAvg.toFixed(1) : "0.0"} </Text>
+          <Text style={styles.muted}>({ratingCount ?? 0})</Text>
         </View>
 
         {/* Price + badges */}
         <View style={{ marginTop: 12 }}>
           <PriceBlock
-            price={item.price}
-            mrp={item.mrp}
-            discountPct={item.discount_pct}
-            badges={item.discount_badges}
+            price={offer?.price ?? item.offers?.[0]?.price}
+            mrp={offer?.mrp ?? undefined}
+            discountPct={offer?.discount_pct ?? undefined}
+            badges={primaryBadges}
             boughtRecentlyLabel={boughtLabel}
           />
 
@@ -153,9 +177,11 @@ export function ShopItemShell({
         </View>
 
         {/* Seller */}
-        <View style={{ marginTop: 12 }}>
-          <SellerCard seller={item.seller} />
-        </View>
+        {offer?.store ? (
+          <View style={{ marginTop: 12 }}>
+            <SellerCard store={offer.store} fulfillment={offer.fulfillment} />
+          </View>
+        ) : null}
 
         {/* Description */}
         {!!item.description && (
@@ -176,19 +202,19 @@ export function ShopItemShell({
             <Text style={styles.cardTitle}>Customer reviews</Text>
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}>
               <Stars value={ratingAvg} size={12} />
-              <Text style={styles.muted}> {ratingAvg.toFixed(1)} </Text>
-              <Text style={styles.muted}>({ratingCount})</Text>
+              <Text style={styles.muted}> {Number.isFinite(ratingAvg) ? ratingAvg.toFixed(1) : "0.0"} </Text>
+              <Text style={styles.muted}>({ratingCount ?? 0})</Text>
             </View>
 
-            {!!item.reviews?.top?.length && (
+            {!!reviewPreview?.body && (
               <Text style={[styles.muted, { marginTop: 10 }]} numberOfLines={3}>
-                {item.reviews.top[0].body}
+                {reviewPreview.body}
               </Text>
             )}
           </View>
         </View>
 
-        {/* Frequently bought together */}
+        {/* Blocks */}
         {item.frequently_bought_together?.items?.length ? (
           <HorizontalShelf
             title={item.frequently_bought_together.title}
@@ -197,13 +223,24 @@ export function ShopItemShell({
           />
         ) : null}
 
-        {/* Similar */}
-        {item.similar?.items?.length ? (
+        {item.similar_products?.items?.length ? (
           <HorizontalShelf
-            title={item.similar.title}
-            items={item.similar.items}
+            title={item.similar_products.title}
+            items={item.similar_products.items}
             onOpenItem={onOpenItem}
           />
+        ) : null}
+
+        {item.more_to_explore?.items?.length ? (
+          <HorizontalShelf
+            title={item.more_to_explore.title}
+            items={item.more_to_explore.items}
+            onOpenItem={onOpenItem}
+          />
+        ) : null}
+
+        {item.top_deals?.items?.length ? (
+          <HorizontalShelf title={item.top_deals.title} items={item.top_deals.items} onOpenItem={onOpenItem} />
         ) : null}
       </ScrollView>
 

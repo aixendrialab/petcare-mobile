@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { addToCart, fetchShopItem } from "../api";
-import type { CatalogItemDetail } from "../types";
+import { addToCart, fetchShopProduct } from "../api";
+import type { ProductDetail } from "../types";
 import { ShopItemShell } from "../components/shopItem/ShopItemShell";
 
 export default function ParentProductDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const id = Number(params.id);
+  const productId = Number(params.id);
 
   const [loading, setLoading] = useState(true);
-  const [item, setItem] = useState<CatalogItemDetail | null>(null);
+  const [item, setItem] = useState<ProductDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -22,7 +22,7 @@ export default function ParentProductDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchShopItem(id);
+      const data = await fetchShopProduct(productId);
       setItem(data);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load item");
@@ -33,20 +33,24 @@ export default function ParentProductDetailScreen() {
   }
 
   useEffect(() => {
-    if (!id) return;
+    if (!productId) return;
     load();
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
 
   function onBack() {
     if ((router as any).canGoBack?.()) router.back();
     else router.replace("/parent/shop/list");
   }
 
+  /** Choose the cheapest offer by default */
+  const bestOffer = item?.offers?.[0];
+
   async function onAddToCart(qtyToAdd: number = 1) {
-    if (!item) return;
+    if (!bestOffer) return;
     setBusy(true);
     try {
-      await addToCart(item.id, qtyToAdd);
+      await addToCart(bestOffer.offer_id, qtyToAdd);
       router.push("/parent/cart");
     } finally {
       setBusy(false);
@@ -66,20 +70,26 @@ export default function ParentProductDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={{ color: "tomato" }}>{error || "Not found"}</Text>
-        <Pressable style={styles.btn} onPress={load}><Text>Retry</Text></Pressable>
-        <Pressable style={[styles.btn, { marginTop: 10 }]} onPress={onBack}><Text>Back</Text></Pressable>
+        <Pressable style={styles.btn} onPress={load}>
+          <Text>Retry</Text>
+        </Pressable>
+        <Pressable style={[styles.btn, { marginTop: 10 }]} onPress={onBack}>
+          <Text>Back</Text>
+        </Pressable>
       </View>
     );
   }
 
-  const ratingAvg = item.rating?.avg ?? item.reviews?.summary?.avg ?? 0;
-  const ratingCount = item.rating?.count ?? item.reviews?.summary?.count ?? 0;
-  const inStock = item.seller?.delivery_promise?.in_stock ?? true;
-  const boughtLabel = item.bought_recently?.label;
+  const ratingAvg = item.review_summary?.rating_avg ?? 0;
+  const ratingCount = item.review_summary?.rating_count ?? 0;
+  const boughtLabel = item.bought_recently_label ?? undefined;
 
-  const promise = item?.seller?.delivery_promise;
-  const etaText = promise?.eta_text ?? "Fast delivery";
-  const shippingFeeText = promise?.shipping_fee ? `₹${promise.shipping_fee.amount} delivery` : "Free delivery";
+  const inStock = bestOffer?.fulfillment?.in_stock ?? true;
+
+  const etaText = bestOffer?.fulfillment?.eta_text ?? "Fast delivery";
+  const shippingFeeText = bestOffer?.fulfillment?.shipping_fee
+    ? `₹${bestOffer.fulfillment.shipping_fee.amount} delivery`
+    : "Free delivery";
 
   return (
     <ShopItemShell
@@ -90,21 +100,17 @@ export default function ParentProductDetailScreen() {
       busy={busy}
       inStock={inStock}
       onGoToCart={() => router.push("/parent/cart")}
-
       qty={qty}
       onChangeQty={setQty}
-
       wished={wished}
       onToggleWish={() => setWished((v) => !v)}
-
-      deliverTo={"Ram Satish • Vizag • 5300xx"}
+      deliverTo={"Delivering to you"}
       onChangeDeliverTo={() => router.push("/parent/profile" as any)}
       etaText={etaText}
       shippingFeeText={shippingFeeText}
-
       onBack={onBack}
       onAddToCart={(q) => onAddToCart(q)}
-      onBuyNow={(q) => onAddToCart(q)} // placeholder: same for now
+      onBuyNow={(q) => onAddToCart(q)}
       onOpenItem={(pid) =>
         router.push({ pathname: "/parent/shop/item/[id]", params: { id: String(pid) } })
       }

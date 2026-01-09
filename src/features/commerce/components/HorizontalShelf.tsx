@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, FlatList, Image, Pressable, StyleSheet } from "react-native";
-import type { CatalogMiniItem } from "../types";
-import { Badge } from "./Badge";
+import { View, Text, FlatList, Pressable, Image, StyleSheet } from "react-native";
+import type { ProductCard } from "../types";
 import { Stars } from "./Stars";
+import { Badge } from "./Badge";
 
 export function HorizontalShelf({
   title,
@@ -10,8 +10,8 @@ export function HorizontalShelf({
   onOpenItem,
 }: {
   title: string;
-  items: CatalogMiniItem[];
-  onOpenItem: (id: number) => void;
+  items: ProductCard[];
+  onOpenItem: (productId: number) => void;
 }) {
   if (!items?.length) return null;
 
@@ -23,28 +23,31 @@ export function HorizontalShelf({
         data={items}
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(x) => String(x.id)}
+        keyExtractor={(x) => String(x.product_id)}
         renderItem={({ item }) => {
           const img = item.primary_image || "https://picsum.photos/seed/petcaremini/240/240";
+          const price = item.best_price?.amount ?? 0;
+          const mrp = item.mrp?.amount ?? 0;
           return (
-            <Pressable style={styles.card} onPress={() => onOpenItem(item.id)}>
+            <Pressable style={styles.card} onPress={() => onOpenItem(item.product_id)}>
               <Image source={{ uri: img }} style={styles.img} />
-              <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+              <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
+
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
-                <Text style={styles.price}>₹ {Math.round(item.price.amount)}</Text>
-                {!!item.mrp && item.mrp.amount > item.price.amount ? (
-                  <Text style={styles.mrp}>₹ {Math.round(item.mrp.amount)}</Text>
-                ) : null}
+                <Text style={styles.price}>₹ {Math.round(price)}</Text>
+                {mrp > price ? <Text style={styles.mrp}>₹ {Math.round(mrp)}</Text> : null}
               </View>
+
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
-                <Stars value={item.rating?.avg ?? 4.2} />
-                <Text style={styles.muted}>({item.rating?.count ?? 0})</Text>
+                <Stars value={item.rating_avg ?? 0} />
+                <Text style={styles.muted}>({item.rating_count ?? 0})</Text>
               </View>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                {(item.badges ?? []).slice(0, 1).map((b) => (
-                  <Badge key={b} text={b} variant="deal" />
-                ))}
-              </View>
+
+              {!!item.badges?.length && (
+                <View style={{ marginTop: 8 }}>
+                  <Badge text={item.badges[0]} variant="deal" />
+                </View>
+              )}
             </Pressable>
           );
         }}

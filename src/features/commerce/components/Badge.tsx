@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, StyleSheet, ViewStyle } from "react-native";
+import { Text, StyleSheet, TextStyle } from "react-native";
 
 export function Badge({
   text,
@@ -8,17 +8,10 @@ export function Badge({
 }: {
   text: string;
   variant?: "neutral" | "deal" | "rx";
-  style?: ViewStyle;
+  style?: TextStyle;
 }) {
   return (
-    <Text
-      style={[
-        styles.base,
-        variant === "deal" && styles.deal,
-        variant === "rx" && styles.rx,
-        style,
-      ]}
-    >
+    <Text style={[styles.base, variant === "deal" && styles.deal, variant === "rx" && styles.rx, style]}>
       {text}
     </Text>
   );
