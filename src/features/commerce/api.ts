@@ -136,3 +136,26 @@ export async function fetchVendorDashboard(role: ProviderRole): Promise<VendorDa
   const res = await api.get(`/vendor/dashboard?role=${role}`);
   return res.data as VendorDashboard;
 }
+
+export async function fetchShopFeed(params: {
+  limit?: number;
+  offset?: number;
+  exclude_ids?: number[];
+}): Promise<ProductCard[]> {
+  const cleanExclude = (params.exclude_ids ?? [])
+    .filter((x) => Number.isFinite(x))
+    .map((x) => Number(x));
+
+  // ✅ de-dupe and cap so URL doesn't blow up
+  const uniqExclude = Array.from(new Set(cleanExclude)).slice(0, 150);
+
+  const qs = new URLSearchParams();
+  qs.set("limit", String(params.limit ?? 24));
+  qs.set("offset", String(params.offset ?? 0));
+
+  // FastAPI expects repeated query params: exclude_ids=1&exclude_ids=2...
+  uniqExclude.forEach((id) => qs.append("exclude_ids", String(id)));
+
+  const res = await api.get(`/shop/feed?${qs.toString()}`);
+  return res.data?.items ?? [];
+}

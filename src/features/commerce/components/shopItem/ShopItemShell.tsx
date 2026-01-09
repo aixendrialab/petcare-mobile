@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, ScrollView, Pressable, Text, StyleSheet, Image, FlatList } from "react-native";
+import { View, ScrollView, Pressable, Text, StyleSheet, Image, FlatList, Dimensions } from "react-native";
 import type { ProductDetail, OfferCard, ProductMedia } from "../../types";
 import { Stars } from "../Stars";
 import { Badge } from "../Badge";
@@ -83,6 +83,16 @@ export function ShopItemShell({
   }, [promoBadges]);
 
   const reviewPreview = item.review_previews?.[0];
+  const W = Dimensions.get("window").width;
+  const GAP = 12;
+  const IMG_W = Math.min(420, W - 32); // padding 16 on each side
+  const IMG_H = IMG_W;
+  const previews = item.review_previews ?? [];
+
+  const PAGE_W = Math.max(320, W - 32);      // ✅ full viewport page (minus padding)
+  function onOpenRoute(arg0: any): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -130,13 +140,24 @@ export function ShopItemShell({
           <FlatList
             data={images}
             horizontal
+            pagingEnabled
             showsHorizontalScrollIndicator={false}
             keyExtractor={(x, idx) => `${x.uri}-${idx}`}
+            snapToInterval={PAGE_W}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
             contentContainerStyle={{ paddingVertical: 8 }}
             renderItem={({ item: img }) => (
-              <View style={styles.imageWrap}>
-                <Image source={{ uri: img.uri }} style={styles.heroImg} resizeMode="cover" />
-                {!!img.label && <Text style={styles.imgLabel}>{img.label}</Text>}
+              <View style={{ width: PAGE_W, alignItems: "center" }}>
+                <View style={{ width: IMG_W }}>
+                  <Image
+                    source={{ uri: img.uri }}
+                    style={{ width: IMG_W, height: IMG_H, borderRadius: 18 }}
+                    resizeMode="cover"
+                  />
+                  {!!img.label && <Text style={styles.imgLabel}>{img.label}</Text>}
+                </View>
               </View>
             )}
           />
@@ -206,10 +227,46 @@ export function ShopItemShell({
               <Text style={styles.muted}>({ratingCount ?? 0})</Text>
             </View>
 
-            {!!reviewPreview?.body && (
-              <Text style={[styles.muted, { marginTop: 10 }]} numberOfLines={3}>
-                {reviewPreview.body}
-              </Text>
+            {previews.length ? (
+              <View style={{ marginTop: 10 }}>
+                {previews.slice(0, 3).map((r, idx) => (
+                  <View
+                    key={String(r.id ?? idx)}
+                    style={{
+                      paddingTop: idx === 0 ? 0 : 10,
+                      marginTop: idx === 0 ? 0 : 10,
+                      borderTopWidth: idx === 0 ? 0 : 1,
+                      borderColor: "rgba(255,255,255,0.12)",
+                    }}
+                  >
+                    {!!r.title && <Text style={{ fontWeight: "900" }}>{r.title}</Text>}
+                    {!!r.body && (
+                      <Text style={[styles.muted, { marginTop: 6 }]} numberOfLines={3}>
+                        {r.body}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+                  <Pressable onPress={() => onOpenRoute(`/parent/shop/item/${item.product_id}/reviews` as any)}>
+                    <Text style={{ fontWeight: "900", opacity: 0.9 }}>See all →</Text>
+                  </Pressable>
+                  <Pressable onPress={() => onOpenRoute(`/parent/shop/item/${item.product_id}/write-review` as any)}>
+                    <Text style={{ fontWeight: "900", opacity: 0.9 }}>Write a review →</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View style={{ marginTop: 10 }}>
+                <Text style={styles.muted}>No reviews yet.</Text>
+                <Pressable
+                  style={{ marginTop: 10 }}
+                  onPress={() => onOpenRoute(`/parent/shop/item/${item.product_id}/write-review` as any)}
+                >
+                  <Text style={{ fontWeight: "900", opacity: 0.9 }}>Be the first to write a review →</Text>
+                </Pressable>
+              </View>
             )}
           </View>
         </View>

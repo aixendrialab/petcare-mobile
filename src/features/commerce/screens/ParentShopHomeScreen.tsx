@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { fetchShopHome } from "../api";
 import type { ShopHome, CatalogCategory } from "../types";
 import { ShopHomeShell } from "../components/shopHome/ShopHomeShell";
@@ -10,7 +10,15 @@ export default function ParentShopHomeScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [home, setHome] = useState<ShopHome | null>(null);
+
   const [q, setQ] = useState("");
+  const [qDebounced, setQDebounced] = useState("");
+
+  // debounce typing (for smoother local filtering / future API search)
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q), 250);
+    return () => clearTimeout(t);
+  }, [q]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -26,11 +34,19 @@ export default function ParentShopHomeScreen() {
     load();
   }, [load]);
 
+  // ✅ refresh home/cart_count whenever you come back to the screen
+  useFocusEffect(
+    useCallback(() => {
+      load().catch(() => {});
+    }, [load])
+  );
+
   const openItem = (productId: number) =>
     router.push({ pathname: "/parent/shop/item/[id]", params: { id: String(productId) } });
 
+  // keep these routes for "See all" etc.
   const openSearch = () =>
-    router.push({ pathname: "/parent/shop/list", params: { q } });
+    router.push({ pathname: "/parent/shop/list", params: { q: qDebounced } });
 
   const pickCategory = (category: CatalogCategory) =>
     router.push({ pathname: "/parent/shop/list", params: { category } });
@@ -69,7 +85,7 @@ export default function ParentShopHomeScreen() {
     <View style={{ flex: 1 }}>
       <ShopHomeShell
         home={home}
-        q={q}
+        q={qDebounced}
         onChangeQ={setQ}
         onSearch={openSearch}
         deliverTo={home.deliver_to_text ?? "Delivering to you"}
@@ -81,7 +97,6 @@ export default function ParentShopHomeScreen() {
         onMyOrders={myOrders}
       />
 
-      {/* Floating cart button (mobile-friendly) */}
       <Pressable style={styles.fabCart} onPress={goToCart} hitSlop={10}>
         <CartIcon size={18} />
         {cartCount > 0 ? (
