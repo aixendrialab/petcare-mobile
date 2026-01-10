@@ -35,8 +35,14 @@ export default function ParentPrescriptionsScreen() {
         <Text style={{ opacity: 0.7 }}>No prescriptions yet.</Text>
       ) : (
         items.map((rx) => (
-          <View
+          <Pressable
             key={rx.id}
+            onPress={() =>
+              router.push({
+                pathname: "/parent/consult/[consultId]",
+                params: { consultId: String(rx.consult_id) },
+              } as any)
+            }
             style={{
               padding: 12,
               borderWidth: 1,
@@ -58,7 +64,7 @@ export default function ParentPrescriptionsScreen() {
               {rx.status} • {new Date(rx.created_at).toLocaleString()}
             </Text>
             {!!rx.notes && <Text style={{ opacity: 0.7 }}>Notes: {rx.notes}</Text>}
-          </View>
+          </Pressable>
         ))
       )}
     </ScrollView>

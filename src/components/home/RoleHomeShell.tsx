@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, ScrollView, FlatList, Pressable } from "react-native";
+import { View, Text, ScrollView, FlatList, Pressable, Image, Platform } from "react-native";
 
 export type RoleKind = "PARENT" | "VET" | "VENDOR" | "NUTRITIONIST";
-
 export type QuickTone = "neutral" | "primary" | "success" | "warning";
 
 export type IconName =
@@ -40,7 +39,7 @@ export type SectionDef = {
   key: string;
   title: string;
   onSeeAll?: () => void;
-  render: () => React.ReactNode; // ✅ Parent/Vet decides what to render
+  render: () => React.ReactNode; // Parent/Vet decides what to render
 };
 
 function RoleBadge({ role }: { role: RoleKind }) {
@@ -60,16 +59,114 @@ function RoleBadge({ role }: { role: RoleKind }) {
         borderWidth: 1,
         borderColor: "rgba(0,0,0,0.06)",
         alignSelf: "flex-start",
-        marginTop: 8,
+        marginTop: 10,
       }}
     >
-      <Text style={{ fontSize: 12, fontWeight: "700", color: "rgba(17,24,39,0.75)" }}>{label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: "800", color: "rgba(17,24,39,0.75)" }}>{label}</Text>
     </View>
   );
 }
 
 /** Icon registry is injected so shell stays generic */
 type IconRegistry = Record<IconName, React.ReactElement>;
+
+function SeeAllPill({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: pressed ? "rgba(59,130,246,0.14)" : "rgba(59,130,246,0.10)",
+        borderWidth: 1,
+        borderColor: "rgba(37,99,235,0.18)",
+      })}
+    >
+      <Text style={{ fontWeight: "800", color: "#2563EB", fontSize: 12 }}>See all</Text>
+    </Pressable>
+  );
+}
+
+function SectionCard({
+  title,
+  onSeeAll,
+  children,
+}: {
+  title: string;
+  onSeeAll?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={{
+        borderRadius: 18,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "rgba(17,24,39,0.08)",
+        overflow: "hidden",
+
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 2,
+      }}
+    >
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: 14,
+          paddingTop: 14,
+          paddingBottom: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text style={{ fontSize: 15.5, fontWeight: "900", color: "#111827" }}>{title}</Text>
+        {!!onSeeAll && <SeeAllPill onPress={onSeeAll} />}
+      </View>
+
+      {/* Body */}
+      <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Split children into items so we can auto-insert separators.
+ * Works when Parent returns:
+ *  - array of <Row/> items
+ *  - single <Card/>
+ *  - <Empty/>
+ */
+function StackWithSeparators({ children, gap = 12 }: { children: React.ReactNode; gap?: number }) {
+  const items = React.Children.toArray(children).filter(Boolean);
+  if (items.length <= 1) return <View style={{ gap }}>{children}</View>;
+
+  return (
+    <View>
+      {items.map((node, idx) => (
+        <View key={idx}>
+          {node}
+          {idx !== items.length - 1 && (
+            <View
+              style={{
+                height: 1,
+                backgroundColor: "rgba(17,24,39,0.08)",
+                marginTop: gap,
+                marginBottom: gap,
+              }}
+            />
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
 
 function IconTile({
   icon,
@@ -107,7 +204,7 @@ function IconTile({
       style={{
         width: size,
         height: size,
-        borderRadius: 18,
+        borderRadius: 20,
         backgroundColor: pressed ? "rgba(255,255,255,0.92)" : "#fff",
         borderWidth: 1,
         borderColor: pressed ? palette.border : "rgba(0,0,0,0.06)",
@@ -116,17 +213,17 @@ function IconTile({
 
         shadowColor: "#000",
         shadowOpacity: 0.06,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 8 },
         elevation: 2,
 
-        transform: [{ scale: pressed ? 0.98 : 1 }],
+        transform: [{ scale: pressed ? 0.985 : 1 }],
       }}
     >
       <View
         style={{
-          width: 42,
-          height: 42,
+          width: 44,
+          height: 44,
           borderRadius: 16,
           backgroundColor: palette.pillBg,
           alignItems: "center",
@@ -136,6 +233,40 @@ function IconTile({
         {iconNode}
       </View>
     </Pressable>
+  );
+}
+
+function PetAvatar({ uri }: { uri?: string | null }) {
+  if (!uri) {
+    return (
+      <View
+        style={{
+          width: 68,
+          height: 68,
+          borderRadius: 34,
+          backgroundColor: "rgba(17,24,39,0.06)",
+          borderWidth: 1,
+          borderColor: "rgba(0,0,0,0.06)",
+        }}
+      />
+    );
+  }
+
+  // Best for mobile + web (Expo): Image handles both.
+  return (
+    <View
+      style={{
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        overflow: "hidden",
+        backgroundColor: "rgba(17,24,39,0.06)",
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.06)",
+      }}
+    >
+      <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+    </View>
   );
 }
 
@@ -166,18 +297,26 @@ export function RoleHomeShell({
 
   sections: SectionDef[];
 }) {
+  const pageBg = "#F8FAFC"; // soft slate
+  const headerText = "#0F172A";
+
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: pageBg }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
+    >
       {/* Header */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800" }}>{greeting}</Text>
-        {!!subtitle && <Text style={{ opacity: 0.6 }}>{subtitle}</Text>}
+      <View style={{ marginBottom: 14 }}>
+        <Text style={{ fontSize: 24, fontWeight: "900", color: headerText }}>{greeting}</Text>
+        {!!subtitle && <Text style={{ marginTop: 4, opacity: 0.6 }}>{subtitle}</Text>}
         <RoleBadge role={role} />
       </View>
 
-      {/* Applies-to strip (pets now; later locations for vet) */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 10 }}>{appliesToTitle}</Text>
+      {/* Applies-to strip */}
+      <View style={{ marginBottom: 18 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <Text style={{ fontSize: 16, fontWeight: "900", color: headerText }}>{appliesToTitle}</Text>
+        </View>
 
         <FlatList
           data={appliesToItems}
@@ -185,53 +324,37 @@ export function RoleHomeShell({
           showsHorizontalScrollIndicator={false}
           keyExtractor={(x) => x.key}
           renderItem={({ item }) => (
-            <Pressable onPress={item.onPress} style={{ marginRight: 12, alignItems: "center" }}>
-              {item.imageUri ? (
-                <View
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
-                    overflow: "hidden",
-                    backgroundColor: "#eee",
-                  }}
-                >
-                  {/* Image passed by caller via URI – keep shell generic */}
-                  {/* Caller can also set imageUri undefined to show placeholder */}
-                  {/* eslint-disable-next-line @typescript-eslint/no-var-requires */}
-                  <img
-                    src={item.imageUri}
-                    style={{ width: "64px", height: "64px", objectFit: "cover" } as any}
-                    alt=""
-                  />
-                </View>
-              ) : (
-                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#eee" }} />
+            <Pressable onPress={item.onPress} style={{ marginRight: 14, alignItems: "center", width: 86 }}>
+              <PetAvatar uri={item.imageUri} />
+              <Text style={{ marginTop: 8, fontWeight: "800" }} numberOfLines={1}>
+                {item.title}
+              </Text>
+              {!!item.subtitle && (
+                <Text style={{ marginTop: 2, opacity: 0.6, fontSize: 12 }} numberOfLines={1}>
+                  {item.subtitle}
+                </Text>
               )}
-
-              <Text style={{ marginTop: 6, fontWeight: "600" }}>{item.title}</Text>
-              {!!item.subtitle && <Text style={{ opacity: 0.6, fontSize: 12 }}>{item.subtitle}</Text>}
             </Pressable>
           )}
           ListFooterComponent={
             onAddAppliesTo ? (
-              <Pressable onPress={onAddAppliesTo} style={{ marginRight: 12, alignItems: "center" }}>
+              <Pressable onPress={onAddAppliesTo} style={{ marginRight: 12, alignItems: "center", width: 86 }}>
                 <View
                   style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
+                    width: 68,
+                    height: 68,
+                    borderRadius: 34,
                     borderWidth: 1,
                     borderStyle: "dashed",
-                    borderColor: "#cfcfcf",
+                    borderColor: "rgba(17,24,39,0.20)",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "#fafafa",
+                    backgroundColor: "rgba(255,255,255,0.9)",
                   }}
                 >
-                  <Text style={{ fontSize: 26, fontWeight: "700", opacity: 0.7 }}>+</Text>
+                  <Text style={{ fontSize: 26, fontWeight: "900", opacity: 0.75 }}>+</Text>
                 </View>
-                <Text style={{ marginTop: 6, fontWeight: "600" }}>Add</Text>
+                <Text style={{ marginTop: 8, fontWeight: "900" }}>Add</Text>
                 <Text style={{ opacity: 0.6, fontSize: 12 }}>{role === "PARENT" ? "Pet" : "Item"}</Text>
               </Pressable>
             ) : null
@@ -240,65 +363,77 @@ export function RoleHomeShell({
       </View>
 
       {/* Tiles */}
-      <View style={{ marginBottom: 18 }}>
-        <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 10 }}>{tilesTitle}</Text>
+      <View style={{ marginBottom: 14 }}>
+        <Text style={{ fontSize: 18, fontWeight: "900", marginBottom: 12, color: headerText }}>
+          {tilesTitle}
+        </Text>
 
-        <FlatList
-          data={tiles}
-          key={tilesPerRow}
-          numColumns={tilesPerRow}
-          scrollEnabled={false}
-          columnWrapperStyle={tilesPerRow > 1 ? { justifyContent: "flex-start" } : undefined}
-          renderItem={({ item }) => (
-            <View style={{ width: 120, marginRight: 18, marginBottom: 16 }}>
-              <IconTile
-                size={64}
-                tone={item.tone}
-                icon={icons[item.iconName]}
-                onPress={item.onPress}
-              />
-              <Text
-                style={{
-                  marginTop: 8,
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: "#111827",
-                }}
-                numberOfLines={2}
-              >
-                {item.title}
-              </Text>
-              {!!item.subtitle && (
+        <View
+          style={{
+            borderRadius: 18,
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: "rgba(17,24,39,0.08)",
+            padding: 12,
+
+            shadowColor: "#000",
+            shadowOpacity: 0.04,
+            shadowRadius: 14,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 2,
+          }}
+        >
+          <FlatList
+            data={tiles}
+            key={tilesPerRow}
+            numColumns={tilesPerRow}
+            scrollEnabled={false}
+            columnWrapperStyle={tilesPerRow > 1 ? { justifyContent: "flex-start" } : undefined}
+            renderItem={({ item }) => (
+              <View style={{ width: 112, marginRight: 16, marginBottom: 14 }}>
+                <IconTile size={64} tone={item.tone} icon={icons[item.iconName]} onPress={item.onPress} />
                 <Text
                   style={{
-                    marginTop: 2,
-                    fontSize: 12,
-                    color: "rgba(17,24,39,0.55)",
+                    marginTop: 10,
+                    fontSize: 13,
+                    fontWeight: "900",
+                    color: "#111827",
                   }}
-                  numberOfLines={1}
+                  numberOfLines={2}
                 >
-                  {item.subtitle}
+                  {item.title}
                 </Text>
-              )}
-            </View>
-          )}
-        />
+                {!!item.subtitle && (
+                  <Text
+                    style={{
+                      marginTop: 3,
+                      fontSize: 12,
+                      color: "rgba(17,24,39,0.55)",
+                    }}
+                    numberOfLines={1}
+                  >
+                    {item.subtitle}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
+        </View>
       </View>
 
-      {/* Sections */}
-      {sections.map((s) => (
-        <View key={s.key} style={{ marginTop: 8, marginBottom: 14 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700" }}>{s.title}</Text>
-            {s.onSeeAll && (
-              <Pressable onPress={s.onSeeAll}>
-                <Text style={{ opacity: 0.7 }}>See all</Text>
-              </Pressable>
-            )}
+      {/* Sections (beautified, reusable for all roles) */}
+      <View style={{ marginTop: 14 }}>
+        {sections.map((s) => (
+          <View key={s.key} style={{ marginTop: 12 }}>
+            <SectionCard title={s.title} onSeeAll={s.onSeeAll}>
+              <StackWithSeparators gap={12}>{s.render()}</StackWithSeparators>
+            </SectionCard>
           </View>
-          <View style={{ gap: 10 }}>{s.render()}</View>
-        </View>
-      ))}
+        ))}
+      </View>
+
+      {/* Bottom breathing space */}
+      <View style={{ height: 10 }} />
     </ScrollView>
   );
 }

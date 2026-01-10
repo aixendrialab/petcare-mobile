@@ -68,6 +68,12 @@ export async function fetchParentUpcomingAppointments(
   return res.data.items ?? [];
 }
 
+// src/features/parent/api.ts
+export async function fetchParentAppointmentById(appointmentId: number): Promise<Appt> {
+  const res = await api.get<Appt>(`/parents/appointments/${appointmentId}`);
+  return res.data;
+}
+
 export async function fetchParentNextAppointment(): Promise<ParentUpcomingAppointment | null> {
   const res = await api.get<ParentUpcomingAppointmentsResponse>(
     "/parents/appointments/upcoming",

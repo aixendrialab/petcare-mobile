@@ -1,12 +1,13 @@
 import React, { useEffect, useState, FC } from "react";
-import { View, Image, ScrollView } from "react-native";
+import { View, Image, ScrollView, Pressable } from "react-native";
 import { Screen, Card } from "@/src/ui";
 import { Text } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchParentConsultDetail } from "../api";
 import { ParentConsultDetail } from "../types";
 
 const ConsultDetailScreen: FC = () => {
+  const router = useRouter();
   const { consultId } = useLocalSearchParams<{ consultId: string }>();
   const [detail, setDetail] = useState<ParentConsultDetail | null>(null);
 
@@ -29,10 +30,42 @@ const ConsultDetailScreen: FC = () => {
 
   const d = detail;
 
+  const apptId = (d as any).appointment_id as number | undefined; // expects backend to include this
+
   return (
     <Screen title="Visit Summary">
       <ScrollView style={{ padding: 16 }}>
-        
+
+        {/* --------------------------- */}
+        {/* Appointment (pressable) */}
+        {/* --------------------------- */}
+        {typeof apptId === "number" && (
+          <Pressable
+            onPress={() => {
+              // If your route is `/parent/appointment/${id}` use:
+              // router.push(`/parent/appointment/${apptId}` as any);
+
+              router.push({
+                pathname: "/parent/appointment/[appointmentId]",
+                params: { appointmentId: String(apptId) },
+              } as any);
+            }}
+            style={{ marginBottom: 12 }}
+          >
+            <Card title="Appointment">
+              <Text style={{ fontWeight: "700" }}>
+                {d.clinic_name ? d.clinic_name : "Appointment details"}
+              </Text>
+              <Text style={{ opacity: 0.7 }}>
+                {new Date(d.date).toLocaleString()}
+              </Text>
+              <Text style={{ marginTop: 6, opacity: 0.6 }}>
+                Tap to view appointment →
+              </Text>
+            </Card>
+          </Pressable>
+        )}
+
         {/* --------------------------- */}
         {/* Pet header card */}
         {/* --------------------------- */}
@@ -91,35 +124,19 @@ const ConsultDetailScreen: FC = () => {
           <Card title="Vitals">
             <VitalRow
               label="Weight"
-              value={
-                d.vitals.weight_kg != null
-                  ? `${d.vitals.weight_kg} kg`
-                  : null
-              }
+              value={d.vitals.weight_kg != null ? `${d.vitals.weight_kg} kg` : null}
             />
             <VitalRow
               label="Temperature"
-              value={
-                d.vitals.temp_c != null
-                  ? `${d.vitals.temp_c} °C`
-                  : null
-              }
+              value={d.vitals.temp_c != null ? `${d.vitals.temp_c} °C` : null}
             />
             <VitalRow
               label="Heart rate"
-              value={
-                d.vitals.heart_rate != null
-                  ? `${d.vitals.heart_rate} bpm`
-                  : null
-              }
+              value={d.vitals.heart_rate != null ? `${d.vitals.heart_rate} bpm` : null}
             />
             <VitalRow
               label="Resp rate"
-              value={
-                d.vitals.resp_rate != null
-                  ? `${d.vitals.resp_rate} /min`
-                  : null
-              }
+              value={d.vitals.resp_rate != null ? `${d.vitals.resp_rate} /min` : null}
             />
 
             {d.vitals.notes && (
@@ -152,35 +169,20 @@ const ConsultDetailScreen: FC = () => {
                 key={idx}
                 style={{
                   paddingVertical: 10,
-                  borderBottomWidth:
-                    idx !== d.medications.length - 1 ? 1 : 0,
+                  borderBottomWidth: idx !== d.medications.length - 1 ? 1 : 0,
                   borderColor: "#eee",
                 }}
               >
-                <Text style={{ fontWeight: "700", fontSize: 16 }}>
-                  {m.name}
-                </Text>
+                <Text style={{ fontWeight: "700", fontSize: 16 }}>{m.name}</Text>
 
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    marginTop: 6,
-                  }}
-                >
+                <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
                   {m.dose && <Tag label={`Dose: ${m.dose}`} />}
                   {m.frequency && <Tag label={`Freq: ${m.frequency}`} />}
                   {m.days != null && <Tag label={`${m.days} days`} />}
                 </View>
 
                 {m.notes && (
-                  <Text
-                    style={{
-                      marginTop: 6,
-                      opacity: 0.7,
-                      fontStyle: "italic",
-                    }}
-                  >
+                  <Text style={{ marginTop: 6, opacity: 0.7, fontStyle: "italic" }}>
                     {m.notes}
                   </Text>
                 )}

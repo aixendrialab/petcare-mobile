@@ -34,27 +34,33 @@ function reschedule(appt: Appt) {
 }
 
 export function AppointmentCard({ appt, reload, showActions = true }: Props) {
-    async function cancel() {
-        await parentCancelAppointment(appt.id);
-        reload?.();
-    }
+  async function cancel() {
+    await parentCancelAppointment(appt.id);
+    reload?.();
+  }
 
-    return (
-        <Card title={`${appt.pet_name} with ${appt.vet_name}`}>
-            <Text>🏥 {appt.location_name}</Text>
-            <Text>⏰ {new Date(appt.start_ts).toLocaleString()}</Text>
-            <Text>🎫 Booking ID: {appt.slot_id}</Text>
+  const status = appt.calendar_state ?? "";
 
-            {showActions && (
-                <View style={{ flexDirection: "row", marginTop: 12 }}>
-                    <Btn title="Cancel" variant="secondary" onPress={cancel} />
-                    <View style={{ width: 12 }} />
-                    <Btn
-                        title="Reschedule"
-                        onPress={reschedule(appt)}
-                    />
-                </View>
-            )}
-        </Card>
-    );
+  return (
+    <Card title={`${appt.pet_name} with ${appt.vet_name}`}>
+      <Text>🏥 {appt.location_name}</Text>
+      <Text>⏰ {new Date(appt.start_ts).toLocaleString()}</Text>
+      <Text>🎫 Booking ID: {appt.slot_id}</Text>
+
+      {!!status && (
+        <Text style={{ marginTop: 6, opacity: 0.7 }}>
+          Status: {status}
+        </Text>
+      )}
+
+      {showActions && (
+        <View style={{ flexDirection: "row", marginTop: 12 }}>
+          <Btn title="Cancel" variant="secondary" onPress={cancel} />
+          <View style={{ width: 12 }} />
+          <Btn title="Reschedule" onPress={reschedule(appt)} />
+        </View>
+      )}
+    </Card>
+  );
 }
+
