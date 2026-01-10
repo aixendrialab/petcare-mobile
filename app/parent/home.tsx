@@ -15,6 +15,7 @@ import { fetchParentPets } from "@/src/features/parent/pets/api";
 import { fetchParentNextAppointment, fetchParentRecentConsults } from "@/src/features/parent/api";
 import { fetchVaccinesDue } from "@/src/features/vaccines/api";
 import { fetchMyOrders } from "@/src/features/commerce/api";
+import { fetchParentPrescriptions } from "@/src/features/parent/api";
 
 import {
   StethoscopeIcon,
@@ -28,7 +29,8 @@ import {
   TruckOutlineIcon,
   PillsOutlineIcon,
   BowlOutlineIcon,
-} from "@/src/components/QuickActionIcons";
+  PrescriptionIcon,
+} from "@/src/components/quickActions/QuickActionIcons";
 
 import { RoleHomeShell, IconName, QuickTile, SectionDef, AppliesToItem } from "@/src/components/home/RoleHomeShell";
 
@@ -45,6 +47,7 @@ const ICONS: Record<IconName, React.ReactElement> = {
   truck: <TruckOutlineIcon />,
   pills: <PillsOutlineIcon />,
   bowl: <BowlOutlineIcon />,
+  prescription:  <PrescriptionIcon />
 };
 
 export default function ParentHome() {
@@ -66,6 +69,7 @@ export default function ParentHome() {
     fetchParentPets().then(setPets).catch(() => setPets([]));
     fetchVaccinesDue().then((items) => setVaccinesDue(items || [])).catch(() => setVaccinesDue([]));
     fetchMyOrders().then((items) => setOrders(items || [])).catch(() => setOrders([]));
+    fetchParentPrescriptions(10).then((items) => setRx(items || [])).catch(() => setRx([]));
   }, []);
 
   useEffect(() => {
@@ -103,6 +107,8 @@ export default function ParentHome() {
     () => [
       { key: "book", title: "Book a Vet", subtitle: "In-clinic or video", tone: "primary", iconName: "stethoscope", onPress: () => router.push("/parent/book" as any) },
       { key: "vacc", title: "Vaccinations", subtitle: "Schedule & history", tone: "warning", iconName: "syringe", onPress: () => router.push("/parent/vaccines" as any) },
+      { key: "rx", title: "Prescriptions", subtitle: "Medicines & dosage", tone: "warning", iconName: "prescription", onPress: () => router.push("/parent/prescriptions" as any) },
+
       { key: "appts", title: "Appointments", subtitle: "Upcoming & past", tone: "primary", iconName: "calendar", onPress: () => router.push("/parent/appointments" as any) },
 
       { key: "visits", title: "Recent Visits", subtitle: "Past consultations", tone: "neutral", iconName: "history", onPress: () => router.push("/parent/visits" as any) },

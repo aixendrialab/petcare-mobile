@@ -2,11 +2,30 @@
 
 import { ParentPet } from "./pets/types";
 
-export type Rx = {
+export interface Rx {
   id: number;
+  consult_id: number;
+
+  pet_id: number;
+  pet_name: string;
+
+  vet_id: number;
+  vet_name?: string | null;
+  clinic_name?: string | null;
+
   drug: string;
-  status: string;
-};
+  dose?: string | null;
+  frequency?: string | null;
+  days?: number | null;
+  notes?: string | null;
+
+  status: "ACTIVE" | "COMPLETED";
+  created_at: string; // ISO
+}
+
+export interface ParentPrescriptionsResponse {
+  items: Rx[];
+}
 
 export type Order = {
   id: number;

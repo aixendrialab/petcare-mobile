@@ -16,7 +16,8 @@ export type IconName =
   | "cart"
   | "truck"
   | "pills"
-  | "bowl";
+  | "bowl"
+  | "prescription";
 
 export type QuickTile = {
   key: string;

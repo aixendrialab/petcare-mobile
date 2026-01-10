@@ -11,7 +11,8 @@ import {
   TruckOutlineIcon,
   PillsOutlineIcon,
   BowlOutlineIcon,
-} from "@/src/components/QuickActionIcons";
+  PrescriptionIcon,
+} from "@/src/components/quickActions/QuickActionIcons";
 
 export type QuickIconName =
   | "stethoscope"
@@ -24,7 +25,8 @@ export type QuickIconName =
   | "cart"
   | "truck"
   | "pills"
-  | "bowl";
+  | "bowl"
+  | "prescription";
 
 export const QUICK_ACTION_ICONS: Record<QuickIconName, React.ReactElement> = {
   stethoscope: <StethoscopeIcon />,
@@ -38,4 +40,5 @@ export const QUICK_ACTION_ICONS: Record<QuickIconName, React.ReactElement> = {
   truck: <TruckOutlineIcon />,
   pills: <PillsOutlineIcon />,
   bowl: <BowlOutlineIcon />,
+  prescription: <PrescriptionIcon />,
 };

@@ -9,7 +9,8 @@ import {
   ParentRecentConsult, 
   ParentUpcomingAppointment, 
   ParentUpcomingAppointmentsResponse, 
-  ParentRecentConsultsResponse} from './types'
+  ParentRecentConsultsResponse,
+  ParentPrescriptionsResponse} from './types'
 import { Appt } from './booking/types'
 
 // ---------- Profile ----------
@@ -91,7 +92,18 @@ export async function parentRescheduleAppointment(
 }
 
 // src/features/parent/api.ts
+// src/features/parent/api.ts
 export async function fetchParentRecentConsults(limit = 5): Promise<ParentRecentConsult[]> {
-  const res = await api.get<ParentRecentConsultsResponse>("/parents/consults/recent", { params: { limit } });
+  const res = await api.get<any>("/parents/consults/recent", { params: { limit } });
+
+  // Server returns a bare array: ParentRecentConsult[]
+  if (Array.isArray(res.data)) return res.data as ParentRecentConsult[];
+
+  // If we later wrap it: { items: [...] }
+  return (res.data?.items ?? []) as ParentRecentConsult[];
+}
+
+export async function fetchParentPrescriptions(limit = 10): Promise<Rx[]> {
+  const res = await api.get<ParentPrescriptionsResponse>("/parents/prescriptions/recent", { params: { limit } });
   return res.data.items ?? [];
 }

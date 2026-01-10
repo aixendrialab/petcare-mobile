@@ -134,3 +134,42 @@ export function BowlOutlineIcon({ size = 18, color = "#111" }: IconProps) {
     </Svg>
   );
 }
+
+export function PrescriptionIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      {/* Clipboard */}
+      <Path
+        d="M9 3h6a2 2 0 0 1 2 2v1h1a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a2 2 0 0 1 2-2Z"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M9 6V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      {/* Rx text-ish */}
+      <Path
+        d="M8.5 11.5h3c1 0 1.5.6 1.5 1.5s-.5 1.5-1.5 1.5h-3v-3Z"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 14.5l2.8 3"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M15.5 14.5h2.5"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
