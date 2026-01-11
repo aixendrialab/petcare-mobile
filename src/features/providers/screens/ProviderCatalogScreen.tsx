@@ -7,8 +7,7 @@ import type { ProviderRole } from "@/src/features/providers/types";
 import { useStoreContext } from "@/src/features/providers/storeContext";
 import { StoreCard } from "@/src/features/providers/components/StoreCard";
 
-import { fetchMyCatalogProducts, fetchMyStores } from "@/src/features/providers/api";
-import { fetchStoreOffers } from "@/src/features/providers/api";
+import { fetchMyCatalogProducts, fetchMyStores, fetchStoreOffers } from "@/src/features/providers/api";
 
 type TabKey = "products" | "offers";
 
@@ -64,13 +63,7 @@ function roleBase(role: ProviderRole) {
   }
 }
 
-function SegTabs({
-  value,
-  onChange,
-}: {
-  value: TabKey;
-  onChange: (v: TabKey) => void;
-}) {
+function SegTabs({ value, onChange }: { value: TabKey; onChange: (v: TabKey) => void }) {
   return (
     <View style={segStyles.wrap}>
       <Pressable style={[segStyles.tab, value === "products" && segStyles.active]} onPress={() => onChange("products")}>
@@ -111,7 +104,6 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
 
   const { store, setStore } = useStoreContext();
 
-  // ✅ default to PRODUCTS (your ask)
   const [tab, setTab] = useState<TabKey>("products");
 
   const [loadingStores, setLoadingStores] = useState(true);
@@ -137,7 +129,6 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
     return loc || `Store ID: ${selectedStore.id}`;
   }, [selectedStore]);
 
-  // Stores (for store context)
   useEffect(() => {
     (async () => {
       setLoadingStores(true);
@@ -145,7 +136,6 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
         const s = await fetchMyStores(role);
         setStores(s as any);
 
-        // auto select first store if not selected
         if (!store && s?.length) {
           await setStore({ store_id: s[0].id, display_name: s[0].display_name });
         }
@@ -189,14 +179,12 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
     }
   }
 
-  // refresh when tab changes
   useEffect(() => {
     if (tab === "products") loadProducts();
     else loadOffers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, store?.store_id]);
 
-  // debounced search on products tab
   useEffect(() => {
     if (tab !== "products") return;
     const t = setTimeout(() => loadProducts(), 200);
@@ -231,10 +219,10 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
   }
 
   function openProduct(product_id: number) {
-    router.push({
-      pathname: `${base}/catalog/product/[id]` as any,
-      params: { id: String(product_id), store_id: store?.store_id ? String(store.store_id) : undefined },
-    } as any);
+    const params: any = { id: String(product_id) };
+    if (store?.store_id) params.store_id = String(store.store_id);
+
+    router.push({ pathname: `${base}/catalog/product/[id]` as any, params } as any);
   }
 
   function openInventory() {
@@ -248,7 +236,6 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
       <Text style={styles.h1}>Catalog</Text>
       <Text style={styles.sub}>Manage products and store-specific listings</Text>
 
-      {/* Store context */}
       <View style={{ marginTop: 12 }}>
         <Text style={styles.sectionTitle}>Store context</Text>
         <Text style={styles.sectionHint}>This affects listings and inventory.</Text>
@@ -258,9 +245,7 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
         ) : stores.length === 0 ? (
           <View style={styles.emptyBox}>
             <Text style={{ fontWeight: "900" }}>No store yet</Text>
-            <Text style={{ opacity: 0.7, marginTop: 6 }}>
-              Create your first store from Home → “+ Add Store”.
-            </Text>
+            <Text style={{ opacity: 0.7, marginTop: 6 }}>Create your first store from Home → “+ Add Store”.</Text>
           </View>
         ) : (
           <>
@@ -287,7 +272,11 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
                       <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
                         {s.display_name}
                       </Text>
-                      {!!sub && <Text style={[styles.chipSub, active && styles.chipSubActive]} numberOfLines={1}>{sub}</Text>}
+                      {!!sub && (
+                        <Text style={[styles.chipSub, active && styles.chipSubActive]} numberOfLines={1}>
+                          {sub}
+                        </Text>
+                      )}
                     </Pressable>
                   );
                 })}
@@ -297,10 +286,8 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
         )}
       </View>
 
-      {/* Tabs */}
       <SegTabs value={tab} onChange={setTab} />
 
-      {/* Search + category */}
       <View style={styles.filterRow}>
         <TextInput
           value={q}
@@ -322,7 +309,6 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
         </Pressable>
       </View>
 
-      {/* CTA row */}
       <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
         {tab === "products" ? (
           <Pressable style={[styles.primaryBtn, { flex: 1 }]} onPress={goNewProduct}>
@@ -334,15 +320,11 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
           </Pressable>
         )}
 
-        <Pressable
-          style={[styles.secondaryBtn, { flex: 1 }]}
-          onPress={() => (tab === "offers" ? loadOffers() : loadProducts())}
-        >
+        <Pressable style={[styles.secondaryBtn, { flex: 1 }]} onPress={() => (tab === "offers" ? loadOffers() : loadProducts())}>
           <Text style={styles.secondaryBtnText}>Refresh</Text>
         </Pressable>
       </View>
 
-      {/* Content */}
       {tab === "products" ? (
         loadingProducts ? (
           <View style={styles.center}>
@@ -357,14 +339,18 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
             renderItem={({ item }) => {
               const listedCount = offersByProduct.get(item.product_id)?.length ?? 0;
               const listedLabel = store?.store_id
-                ? (listedCount > 0 ? `Listed in this store (${listedCount})` : "Not listed in this store")
+                ? listedCount > 0
+                  ? `Listed in this store (${listedCount})`
+                  : "Not listed in this store"
                 : "Pick a store to list";
 
               return (
                 <View style={styles.card}>
                   <Pressable onPress={() => openProduct(item.product_id)}>
                     <View style={styles.rowBetween}>
-                      <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+                      <Text style={styles.cardTitle} numberOfLines={2}>
+                        {item.title}
+                      </Text>
                       <Text style={styles.catPill}>{item.category}</Text>
                     </View>
 
@@ -380,12 +366,7 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
                     <Pressable
                       style={[styles.smallBtn, { flex: 1, opacity: store?.store_id ? 1 : 0.5 }]}
                       disabled={!store?.store_id}
-                      onPress={() =>
-                        router.push({
-                          pathname: `${base}/catalog/product/[id]` as any,
-                          params: { id: String(item.product_id), store_id: String(store!.store_id) },
-                        } as any)
-                      }
+                      onPress={() => openProduct(item.product_id)}
                     >
                       <Text style={styles.smallBtnText}>List in store</Text>
                     </Pressable>
@@ -393,53 +374,55 @@ export default function ProviderCatalogScreen({ role }: { role: ProviderRole }) 
                 </View>
               );
             }}
-            ListEmptyComponent={
-              <Text style={{ opacity: 0.7, marginTop: 14 }}>
-                No products yet. Tap “New product”.
-              </Text>
-            }
+            ListEmptyComponent={<Text style={{ opacity: 0.7, marginTop: 14 }}>No products yet. Tap “New product”.</Text>}
           />
         )
+      ) : loadingOffers ? (
+        <View style={styles.center}>
+          <ActivityIndicator />
+          <Text style={{ marginTop: 8, opacity: 0.7 }}>Loading listings…</Text>
+        </View>
       ) : (
-        loadingOffers ? (
-          <View style={styles.center}>
-            <ActivityIndicator />
-            <Text style={{ marginTop: 8, opacity: 0.7 }}>Loading listings…</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredOffers}
-            keyExtractor={(x) => String(x.offer_id)}
-            contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View style={styles.rowBetween}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                  <Text style={styles.price}>₹ {item.price}</Text>
-                </View>
-
-                <View style={{ flexDirection: "row", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
-                  <Text style={styles.catPill}>{item.category}</Text>
-                  {!!item.brand && <Text style={styles.muted} numberOfLines={1}>{item.brand}</Text>}
-                </View>
-
-                <View style={[styles.rowBetween, { marginTop: 10 }]}>
-                  <Text style={styles.badge}>SKU {item.sku_id} • {item.is_active ? "ACTIVE" : "INACTIVE"}</Text>
-                  <Text style={styles.stock}>Stock: {item.stock_qty}</Text>
-                </View>
-
-                <Text style={[styles.muted, { marginTop: 8 }]}>Reorder: {item.reorder_level}</Text>
+        <FlatList
+          data={filteredOffers}
+          keyExtractor={(x) => String(x.offer_id)}
+          contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.cardTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                <Text style={styles.price}>₹ {item.price}</Text>
               </View>
-            )}
-            ListEmptyComponent={
-              <Text style={{ opacity: 0.7, marginTop: 14 }}>
-                {store?.store_id
-                  ? "No listings for this store yet. Open a product → “Store listing” section → create listing."
-                  : "Select a store to view listings."}
-              </Text>
-            }
-          />
-        )
+
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <Text style={styles.catPill}>{item.category}</Text>
+                {!!item.brand && (
+                  <Text style={styles.muted} numberOfLines={1}>
+                    {item.brand}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[styles.rowBetween, { marginTop: 10 }]}>
+                <Text style={styles.badge}>
+                  SKU {item.sku_id} • {item.is_active ? "ACTIVE" : "INACTIVE"}
+                </Text>
+                <Text style={styles.stock}>Stock: {item.stock_qty}</Text>
+              </View>
+
+              <Text style={[styles.muted, { marginTop: 8 }]}>Reorder: {item.reorder_level}</Text>
+            </View>
+          )}
+          ListEmptyComponent={
+            <Text style={{ opacity: 0.7, marginTop: 14 }}>
+              {store?.store_id
+                ? "No listings for this store yet. Open a product → “Store listing” section → create listing."
+                : "Select a store to view listings."}
+            </Text>
+          }
+        />
       )}
     </View>
   );
