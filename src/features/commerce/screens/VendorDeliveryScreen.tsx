@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import type { ProviderRole } from "@/src/features/providers/types";
-import type { Order } from "../types";
+import type { OrderListItem } from "../types";
 import { fetchProviderOrders, setProviderOrderStatus } from "../api";
 
 export default function VendorDeliveryScreen({ role }: { role: ProviderRole }) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [items, setItems] = useState<Order[]>([]);
+  const [items, setItems] = useState<OrderListItem[]>([]);
 
   async function load() {
     setLoading(true);
     try {
       const data = await fetchProviderOrders(role);
-      // show only dispatchable/delivery-related
       setItems(data.filter((o) => ["PACKED", "DISPATCHED"].includes(o.status)));
     } finally {
       setLoading(false);
@@ -62,7 +61,7 @@ export default function VendorDeliveryScreen({ role }: { role: ProviderRole }) {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Order #{item.id}</Text>
               <Text style={{ opacity: 0.7, marginTop: 6 }}>
-                Status: {item.status} • ₹ {item.total_amount}
+                Status: {item.status} • ₹ {item.grand_total}
               </Text>
 
               <View style={{ height: 10 }} />
@@ -73,7 +72,9 @@ export default function VendorDeliveryScreen({ role }: { role: ProviderRole }) {
                   onPress={() => markOutForDelivery(item.id)}
                   disabled={busyId === item.id}
                 >
-                  <Text style={styles.primaryBtnText}>{busyId === item.id ? "Updating…" : "Mark Out for Delivery"}</Text>
+                  <Text style={styles.primaryBtnText}>
+                    {busyId === item.id ? "Updating…" : "Mark Out for Delivery"}
+                  </Text>
                 </Pressable>
               ) : null}
 
@@ -83,7 +84,9 @@ export default function VendorDeliveryScreen({ role }: { role: ProviderRole }) {
                   onPress={() => markDelivered(item.id)}
                   disabled={busyId === item.id}
                 >
-                  <Text style={styles.primaryBtnText}>{busyId === item.id ? "Updating…" : "Mark Delivered"}</Text>
+                  <Text style={styles.primaryBtnText}>
+                    {busyId === item.id ? "Updating…" : "Mark Delivered"}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, FlatList, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchOrder, setProviderOrderStatus } from "../api";
-import type { Order, OrderStatus } from "../types";
+import type { OrderDetail, OrderStatus } from "../types";
 import type { ProviderRole } from "@/src/features/providers/types";
 
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -20,14 +20,21 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
   const id = Number(params.id);
 
   const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
+    setErr(null);
     try {
+      // NOTE: this endpoint is parent-owned (checks parent_user_id).
+      // For true provider detail you should add /provider/orders/{id} on backend.
       const data = await fetchOrder(id);
       setOrder(data);
+    } catch (e: any) {
+      setOrder(null);
+      setErr(e?.message ?? "Order not accessible via parent endpoint");
     } finally {
       setLoading(false);
     }
@@ -38,14 +45,13 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
     load();
   }, [id]);
 
-  async function advance() {
-    if (!order) return;
-    const ns = NEXT_STATUS[order.status];
-    if (!ns) return;
+  const next = useMemo(() => (order ? NEXT_STATUS[order.status] : null), [order]);
 
+  async function advance() {
+    if (!order || !next) return;
     setBusy(true);
     try {
-      await setProviderOrderStatus(role, order.id, ns);
+      await setProviderOrderStatus(role, order.id, next);
       await load();
     } finally {
       setBusy(false);
@@ -74,7 +80,12 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
   if (!order) {
     return (
       <View style={styles.center}>
-        <Text style={{ opacity: 0.7 }}>Order not found</Text>
+        <Text style={{ opacity: 0.8, textAlign: "center" }}>
+          {err ?? "Order not found"}
+        </Text>
+        <Text style={{ opacity: 0.6, marginTop: 10, textAlign: "center" }}>
+          Provider order detail needs a backend endpoint like GET /provider/orders/{`{id}`} (role-scoped).
+        </Text>
         <Pressable style={styles.btn} onPress={() => router.back()}>
           <Text>Back</Text>
         </Pressable>
@@ -82,43 +93,31 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
     );
   }
 
-  const next = NEXT_STATUS[order.status];
+  const total = order.totals?.grand_total ?? 0;
 
   return (
     <View style={styles.page}>
       <Text style={styles.h1}>Order #{order.id}</Text>
-      <Text style={{ opacity: 0.7, marginTop: 6 }}>Status: {order.status}</Text>
-      <Text style={{ opacity: 0.7, marginTop: 4 }}>Total: ₹ {order.total_amount}</Text>
-
-      {!!order.prescription_required && (
-        <Text style={{ marginTop: 10, color: order.prescription_attached ? "lightgreen" : "orange", fontWeight: "800" }}>
-          RX: {order.prescription_attached ? "Attached" : "Pending"}
-        </Text>
-      )}
+      <Text style={{ opacity: 0.7, marginTop: 6 }}>
+        Status: {order.status} • Total: ₹ {total}
+      </Text>
 
       <View style={{ height: 12 }} />
 
       <FlatList
         data={order.items}
-        keyExtractor={(x) => String(x.catalog_item_id)}
+        keyExtractor={(x) => `${x.product_id}:${x.sku_id}`}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={{ fontWeight: "800" }}>{item.name}</Text>
+            <Text style={{ fontWeight: "800" }}>{item.title}</Text>
             <Text style={{ opacity: 0.7, marginTop: 6 }}>
               Qty: {item.qty} • ₹ {item.unit_price}
             </Text>
-            <Text style={{ marginTop: 6, fontWeight: "900" }}>
-              ₹ {item.line_total}
-            </Text>
+            <Text style={{ marginTop: 6, fontWeight: "900" }}>₹ {item.line_total}</Text>
           </View>
         )}
-        ListEmptyComponent={
-          <Text style={{ opacity: 0.6, marginTop: 12 }}>
-            No items in this order
-          </Text>
-        }
+        ListEmptyComponent={<Text style={{ opacity: 0.6, marginTop: 12 }}>No items in this order</Text>}
       />
-
 
       {next ? (
         <Pressable style={styles.primaryBtn} onPress={advance} disabled={busy}>
@@ -142,7 +141,7 @@ export default function ProviderOrderDetailScreen({ role }: { role: ProviderRole
 const styles = StyleSheet.create({
   page: { flex: 1, padding: 16 },
   h1: { fontSize: 20, fontWeight: "900" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 16 },
   card: { borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", borderRadius: 12, padding: 14, marginBottom: 10 },
   btn: { marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)" },
   primaryBtn: { padding: 12, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)" },

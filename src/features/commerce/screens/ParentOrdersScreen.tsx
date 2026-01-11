@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { fetchMyOrders } from "../api";
-import type { Order } from "../types";
+import type { OrderListItem } from "../types";
 
 export default function ParentOrdersScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<Order[]>([]);
+  const [items, setItems] = useState<OrderListItem[]>([]);
 
   async function load() {
     setLoading(true);
@@ -39,20 +39,23 @@ export default function ParentOrdersScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}
-              onPress={() => router.push({ pathname: "/parent/orders/[id]", params: { id: String(item.id) } })}
+              onPress={() => router.push({ pathname: "/parent/orders/[id]" as any, params: { id: String(item.id) } })}
             >
               <Text style={styles.cardTitle}>Order #{item.id}</Text>
               <Text style={{ opacity: 0.7, marginTop: 6 }}>
-                {item.provider?.display_name ?? "Provider"} • {item.status}
+                {item.store_name} • {item.status}
               </Text>
-              <Text style={{ marginTop: 6, fontWeight: "900" }}>₹ {item.total_amount}</Text>
+              <Text style={{ marginTop: 6, fontWeight: "900" }}>₹ {item.grand_total}</Text>
+              <Text style={{ marginTop: 4, opacity: 0.6 }}>
+                {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
+              </Text>
             </Pressable>
           )}
           ListEmptyComponent={<Text style={{ opacity: 0.7, marginTop: 10 }}>No orders yet.</Text>}
         />
       )}
 
-      <Pressable style={styles.secondaryBtn} onPress={() => router.push("/parent/shop")}>
+      <Pressable style={styles.secondaryBtn} onPress={() => router.push("/parent/shop" as any)}>
         <Text style={styles.secondaryBtnText}>Go to Shop</Text>
       </Pressable>
     </View>

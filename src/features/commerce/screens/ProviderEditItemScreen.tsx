@@ -2,45 +2,59 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, Switch } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { ProviderRole } from "@/src/features/providers/types";
-import type { CatalogItem, CatalogCategory, CatalogKind } from "../types";
 import { fetchProviderCatalog, upsertCatalogItem } from "../api";
 
-const CATEGORY_CHOICES: CatalogCategory[] = ["MEDICINE", "FOOD", "ACCESSORY", "BOARDING", "DIET_PLAN"];
-const KIND_CHOICES: CatalogKind[] = ["PRODUCT", "SERVICE"];
+type OfferRow = {
+  offer_id: number;
+  sku_id: number;
+  category: string;
+  title: string;
+  brand?: string | null;
+  price: number;
+  mrp?: number | null;
+  discount_pct?: number | null;
+  stock_qty: number;
+  reorder_level: number;
+  currency: string;
+  is_active: boolean;
+  eta_text?: string | null;
+  shipping_fee?: number | null;
+};
 
 export default function ProviderEditCatalogItemScreen({ role }: { role: ProviderRole }) {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const mode = String(params.mode ?? "create") as "create" | "edit";
-  const id = params.id ? Number(params.id) : null;
+
+  const mode = String(params.mode ?? "edit") as "create" | "edit";
+  const offer_id = params.offer_id ? Number(params.offer_id) : null;
 
   const [loading, setLoading] = useState(mode === "edit");
   const [busy, setBusy] = useState(false);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [offer, setOffer] = useState<OfferRow | null>(null);
+
   const [price, setPrice] = useState("0");
-  const [kind, setKind] = useState<CatalogKind>("PRODUCT");
-  const [category, setCategory] = useState<CatalogCategory>("ACCESSORY");
+  const [mrp, setMrp] = useState("");
+  const [stockQty, setStockQty] = useState("0");
+  const [reorderLevel, setReorderLevel] = useState("0");
   const [active, setActive] = useState(true);
-  const [rxRequired, setRxRequired] = useState(false);
 
   useEffect(() => {
-    if (mode !== "edit" || !id) return;
+    if (mode !== "edit" || !offer_id) return;
 
     async function load() {
       setLoading(true);
       try {
-        const all = await fetchProviderCatalog(role);
-        const item = all.find((x) => x.id === id);
-        if (item) {
-          setName(item.name ?? "");
-          setDescription(item.description ?? "");
-          setPrice(String(item.price ?? 0));
-          setKind(item.kind);
-          setCategory(item.category);
-          setActive(!!item.active);
-          setRxRequired(!!item.rx_required);
+        const all = (await fetchProviderCatalog(role)) as OfferRow[];
+        const found = all.find((x) => Number(x.offer_id) === offer_id) ?? null;
+        setOffer(found);
+
+        if (found) {
+          setPrice(String(found.price ?? 0));
+          setMrp(found.mrp != null ? String(found.mrp) : "");
+          setStockQty(String(found.stock_qty ?? 0));
+          setReorderLevel(String(found.reorder_level ?? 0));
+          setActive(!!found.is_active);
         }
       } finally {
         setLoading(false);
@@ -48,45 +62,45 @@ export default function ProviderEditCatalogItemScreen({ role }: { role: Provider
     }
 
     load();
-  }, [mode, id, role]);
+  }, [mode, offer_id, role]);
 
-  const canRx = useMemo(() => kind === "PRODUCT" && category === "MEDICINE", [kind, category]);
-
-  useEffect(() => {
-    if (!canRx) setRxRequired(false);
-  }, [canRx]);
-
-  function cycleKind() {
-    const idx = KIND_CHOICES.indexOf(kind);
-    setKind(KIND_CHOICES[(idx + 1) % KIND_CHOICES.length]);
-  }
-
-  function cycleCategory() {
-    const idx = CATEGORY_CHOICES.indexOf(category);
-    setCategory(CATEGORY_CHOICES[(idx + 1) % CATEGORY_CHOICES.length]);
-  }
+  const title = useMemo(() => {
+    if (mode === "create") return "Add Offer";
+    return offer?.title ? `Edit: ${offer.title}` : "Edit Offer";
+  }, [mode, offer?.title]);
 
   async function save() {
+    if (mode === "edit" && !offer_id) return;
+
     const p = Number(price);
-    if (!name.trim()) return;
+    const m = mrp.trim() === "" ? null : Number(mrp);
+    const sq = Number(stockQty);
+    const rl = Number(reorderLevel);
+
+    if (!Number.isFinite(p) || p < 0) return;
+    if (m != null && (!Number.isFinite(m) || m < 0)) return;
+    if (!Number.isFinite(sq) || sq < 0) return;
+    if (!Number.isFinite(rl) || rl < 0) return;
 
     setBusy(true);
     try {
-      const payload: Partial<CatalogItem> = {
-        id: id ?? undefined,
-        name: name.trim(),
-        description: description.trim() || undefined,
-        price: Number.isFinite(p) ? p : 0,
-        kind,
-        category,
-        active,
-        rx_required: canRx ? rxRequired : false,
-      };
+      if (mode === "create") {
+        // v2: creating an offer requires sku_id; UI flow not built yet.
+        // Keep as no-op or show message. For now we block.
+        alert("Create offer flow needs SKU selection. Please edit existing offers for now.");
+        return;
+      }
 
-      await upsertCatalogItem(role, payload);
+      await upsertCatalogItem(role, {
+        offer_id,
+        price: p,
+        mrp: m,
+        stock_qty: sq,
+        reorder_level: rl,
+        is_active: active,
+      });
 
-      // back to catalog
-      const back = role === "pharmacy" ? "/pharmacist/catalog" : "/vendor/catalog";
+      const back = role === "pharmacist" ? "/pharmacist/catalog" : "/vendor/catalog";
       router.replace(back as any);
     } finally {
       setBusy(false);
@@ -104,47 +118,62 @@ export default function ProviderEditCatalogItemScreen({ role }: { role: Provider
 
   return (
     <View style={styles.page}>
-      <Text style={styles.h1}>{mode === "edit" ? "Edit Item" : "Add Item"}</Text>
+      <Text style={styles.h1}>{title}</Text>
       <Text style={styles.sub}>Role: {role}</Text>
+
+      {offer ? (
+        <Text style={{ marginTop: 10, opacity: 0.75 }}>
+          {offer.brand ? `${offer.brand} • ` : ""}
+          {offer.category} • SKU {offer.sku_id}
+        </Text>
+      ) : null}
 
       <View style={{ height: 14 }} />
 
-      <Text style={styles.label}>Name</Text>
-      <TextInput value={name} onChangeText={setName} style={styles.input} placeholder="Item name" placeholderTextColor="rgba(255,255,255,0.5)" />
-
-      <Text style={styles.label}>Description</Text>
+      <Text style={styles.label}>Price (₹)</Text>
       <TextInput
-        value={description}
-        onChangeText={setDescription}
-        style={[styles.input, { height: 90 }]}
-        multiline
-        placeholder="Short description"
+        value={price}
+        onChangeText={setPrice}
+        style={styles.input}
+        keyboardType="numeric"
+        placeholder="0"
         placeholderTextColor="rgba(255,255,255,0.5)"
       />
 
-      <Text style={styles.label}>Price (₹)</Text>
-      <TextInput value={price} onChangeText={setPrice} style={styles.input} keyboardType="numeric" placeholder="0" placeholderTextColor="rgba(255,255,255,0.5)" />
+      <Text style={styles.label}>MRP (₹) (optional)</Text>
+      <TextInput
+        value={mrp}
+        onChangeText={setMrp}
+        style={styles.input}
+        keyboardType="numeric"
+        placeholder="e.g., 1299"
+        placeholderTextColor="rgba(255,255,255,0.5)"
+      />
 
-      <View style={styles.rowBetween}>
-        <Pressable style={styles.pill} onPress={cycleKind}>
-          <Text style={styles.pillText}>Kind: {kind}</Text>
-        </Pressable>
-        <Pressable style={styles.pill} onPress={cycleCategory}>
-          <Text style={styles.pillText}>Category: {category}</Text>
-        </Pressable>
-      </View>
+      <Text style={styles.label}>Stock qty</Text>
+      <TextInput
+        value={stockQty}
+        onChangeText={setStockQty}
+        style={styles.input}
+        keyboardType="numeric"
+        placeholder="0"
+        placeholderTextColor="rgba(255,255,255,0.5)"
+      />
+
+      <Text style={styles.label}>Reorder level</Text>
+      <TextInput
+        value={reorderLevel}
+        onChangeText={setReorderLevel}
+        style={styles.input}
+        keyboardType="numeric"
+        placeholder="0"
+        placeholderTextColor="rgba(255,255,255,0.5)"
+      />
 
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Active</Text>
         <Switch value={active} onValueChange={setActive} />
       </View>
-
-      {canRx ? (
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Prescription required</Text>
-          <Switch value={rxRequired} onValueChange={setRxRequired} />
-        </View>
-      ) : null}
 
       <View style={{ flex: 1 }} />
 
@@ -162,7 +191,7 @@ export default function ProviderEditCatalogItemScreen({ role }: { role: Provider
 const styles = StyleSheet.create({
   page: { flex: 1, padding: 16 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  h1: { fontSize: 20, fontWeight: "900" },
+  h1: { fontSize: 18, fontWeight: "900" },
   sub: { marginTop: 4, opacity: 0.7 },
 
   label: { marginTop: 10, marginBottom: 6, opacity: 0.8, fontWeight: "700" },
@@ -173,16 +202,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", gap: 10, marginTop: 12 },
-  pill: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  pillText: { textAlign: "center", fontWeight: "800" },
 
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
   switchLabel: { fontWeight: "800", opacity: 0.9 },

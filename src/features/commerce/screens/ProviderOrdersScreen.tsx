@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { fetchProviderOrders } from "../api";
-import type { Order } from "../types";
+import type { OrderListItem } from "../types";
 import type { ProviderRole } from "@/src/features/providers/types";
 
 export default function ProviderOrdersScreen({ role }: { role: ProviderRole }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<Order[]>([]);
+  const [items, setItems] = useState<OrderListItem[]>([]);
 
   async function load() {
     setLoading(true);
@@ -23,6 +23,8 @@ export default function ProviderOrdersScreen({ role }: { role: ProviderRole }) {
   useEffect(() => {
     load();
   }, [role]);
+
+  const base = role === "pharmacist" ? "/pharmacist/orders/[id]" : "/vendor/orders/[id]";
 
   return (
     <View style={styles.page}>
@@ -41,22 +43,13 @@ export default function ProviderOrdersScreen({ role }: { role: ProviderRole }) {
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}
-              onPress={() => {
-                // route depends on role folder, so we push relative:
-                // vendor -> /vendor/orders/[id], pharmacist -> /pharmacist/orders/[id]
-                const base = role === "pharmacy" ? "/pharmacist/orders/[id]" : "/vendor/orders/[id]";
-                router.push({ pathname: base as any, params: { id: String(item.id) } });
-              }}
+              onPress={() => router.push({ pathname: base as any, params: { id: String(item.id) } })}
             >
               <Text style={styles.cardTitle}>Order #{item.id}</Text>
               <Text style={{ opacity: 0.7, marginTop: 6 }}>
-                {item.status} • ₹ {item.total_amount}
+                {item.status} • ₹ {item.grand_total}
               </Text>
-              {!!item.prescription_required && (
-                <Text style={{ marginTop: 6, color: "orange", fontWeight: "700" }}>
-                  RX: {item.prescription_attached ? "Attached" : "Pending"}
-                </Text>
-              )}
+              <Text style={{ opacity: 0.6, marginTop: 4 }}>{new Date(item.created_at).toLocaleString()}</Text>
             </Pressable>
           )}
           ListEmptyComponent={<Text style={{ opacity: 0.7, marginTop: 10 }}>No orders yet.</Text>}

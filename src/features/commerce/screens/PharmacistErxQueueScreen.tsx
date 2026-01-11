@@ -1,23 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import type { Order } from "../types";
+import type { OrderListItem } from "../types";
 import { fetchProviderOrders, setProviderOrderStatus } from "../api";
 
 export default function PharmacistErxQueueScreen() {
-  const role = "pharmacy" as const;
+  const role = "pharmacist" as const;
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [items, setItems] = useState<Order[]>([]);
+  const [items, setItems] = useState<OrderListItem[]>([]);
 
   async function load() {
     setLoading(true);
     try {
       const data = await fetchProviderOrders(role);
-      // show orders that require RX and not attached
-      setItems(data.filter((o) => o.prescription_required && !o.prescription_attached));
+      // NOTE: v2 provider list does not include RX flags yet.
+      // As a placeholder, show CREATED/CONFIRMED (things needing attention).
+      setItems(data.filter((o) => ["CREATED", "CONFIRMED"].includes(o.status)));
     } finally {
       setLoading(false);
     }
@@ -30,8 +31,6 @@ export default function PharmacistErxQueueScreen() {
   async function verify(order_id: number) {
     setBusyId(order_id);
     try {
-      // For mock: simply confirm order after "verification".
-      // Later: call /provider/orders/{id}/verify-prescription
       await setProviderOrderStatus(role, order_id, "CONFIRMED");
       await load();
     } finally {
@@ -42,7 +41,7 @@ export default function PharmacistErxQueueScreen() {
   return (
     <View style={styles.page}>
       <Text style={styles.h1}>eRx Queue</Text>
-      <Text style={styles.sub}>Orders waiting for prescription verification</Text>
+      <Text style={styles.sub}>Orders waiting for prescription verification (placeholder)</Text>
 
       {loading ? (
         <View style={styles.center}>
@@ -56,26 +55,22 @@ export default function PharmacistErxQueueScreen() {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Pressable
-                onPress={() => router.push({ pathname: "/pharmacist/orders/[id]", params: { id: String(item.id) } })}
+                onPress={() => router.push({ pathname: "/pharmacist/orders/[id]" as any, params: { id: String(item.id) } })}
               >
                 <Text style={styles.cardTitle}>Order #{item.id}</Text>
                 <Text style={{ opacity: 0.7, marginTop: 6 }}>
-                  Total: ₹ {item.total_amount} • Status: {item.status}
+                  Total: ₹ {item.grand_total} • Status: {item.status}
                 </Text>
               </Pressable>
 
               <View style={{ height: 10 }} />
 
-              <Pressable
-                style={styles.primaryBtn}
-                onPress={() => verify(item.id)}
-                disabled={busyId === item.id}
-              >
-                <Text style={styles.primaryBtnText}>{busyId === item.id ? "Verifying…" : "Verify Prescription"}</Text>
+              <Pressable style={styles.primaryBtn} onPress={() => verify(item.id)} disabled={busyId === item.id}>
+                <Text style={styles.primaryBtnText}>{busyId === item.id ? "Verifying…" : "Mark Verified"}</Text>
               </Pressable>
             </View>
           )}
-          ListEmptyComponent={<Text style={{ opacity: 0.7, marginTop: 10 }}>No pending eRx right now.</Text>}
+          ListEmptyComponent={<Text style={{ opacity: 0.7, marginTop: 10 }}>No pending items right now.</Text>}
         />
       )}
 
