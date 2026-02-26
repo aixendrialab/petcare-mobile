@@ -100,13 +100,16 @@ export async function parentRescheduleAppointment(
 // src/features/parent/api.ts
 // src/features/parent/api.ts
 export async function fetchParentRecentConsults(limit = 5): Promise<ParentRecentConsult[]> {
-  const res = await api.get<any>("/parents/consults/recent", { params: { limit } });
+  const res = await api.get<ParentRecentConsult[] | ParentRecentConsultsResponse>(
+    "/parents/consults/recent",
+    { params: { limit } }
+  );
 
   // Server returns a bare array: ParentRecentConsult[]
-  if (Array.isArray(res.data)) return res.data as ParentRecentConsult[];
+  if (Array.isArray(res.data)) return res.data;
 
   // If we later wrap it: { items: [...] }
-  return (res.data?.items ?? []) as ParentRecentConsult[];
+  return res.data?.items ?? [];
 }
 
 export async function fetchParentPrescriptions(limit = 10): Promise<Rx[]> {
