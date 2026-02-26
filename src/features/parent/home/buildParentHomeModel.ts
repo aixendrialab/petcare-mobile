@@ -198,7 +198,7 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
       title: `${v.pet_name}: ${v.vaccine_name}`,
       subtitle: `${v.status === "DUE" ? "Due" : "Upcoming"} • ${v.due_on}`,
       cta: {
-        label: "Schedule",
+        text: "Schedule",
         onPress: () => router.push("/parent/vaccines" as any),
       },
     });
@@ -215,7 +215,7 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
         title: `${r.pet_name}: ${r.drug}`,
         subtitle: r.dose ? `${r.dose}${r.frequency ? ` • ${r.frequency}` : ""}` : "Active prescription",
         cta: {
-          label: "View",
+          text: "View",
           onPress: () => router.push("/parent/prescriptions" as any),
         },
       });
@@ -232,7 +232,7 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
         title: `Order #${o.id}: ${o.status}`,
         subtitle: o.store_name ? o.store_name : undefined,
         cta: {
-          label: "Track",
+          text: "Track",
           onPress: () => router.push("/parent/orders" as any),
         },
       });
@@ -244,20 +244,20 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
   sections.push({
     key: "nextAppt",
     title: "Next Appointment",
-    seeAll: { onPress: () => router.push("/parent/appointments" as any) },
+    onSeeAll: () => router.push("/parent/appointments" as any),
     content: {
       kind: "rows",
       rows: !nextAppt
         ? []
         : [
-            {
-              key: String(nextAppt.id),
-              primary: `${nextAppt.pet_name} with ${nextAppt.vet_name}`,
-              secondary: `${nextAppt.location_name ?? ""}`.trim() || undefined,
-              tertiary: safeDateLabel(nextAppt.start_ts),
-              onPress: () => router.push(`/parent/appointment/${nextAppt.id}` as any),
-            },
-          ],
+          {
+            key: String(nextAppt.id),
+            primary: `${nextAppt.pet_name} with ${nextAppt.vet_name}`,
+            secondary: `${nextAppt.location_name ?? ""}`.trim() || undefined,
+            tertiary: safeDateLabel(nextAppt.start_ts),
+            onPress: () => router.push(`/parent/appointment/${nextAppt.id}` as any),
+          },
+        ],
       empty: { text: "No upcoming appointments" },
     },
   });
@@ -267,21 +267,21 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
   sections.push({
     key: "recentVisit",
     title: "Recent Visit",
-    seeAll: { onPress: () => router.push("/parent/consult" as any) },
+    onSeeAll: () => router.push("/parent/consult" as any),
     content: {
       kind: "rows",
       rows: !rv
         ? []
         : [
-            {
-              key: String(rv.consult_id),
-              primary: `${rv.pet_name} – ${rv.vet_name ?? ""}`.trim(),
-              secondary: rv.diagnosis || "Consult completed",
-              tertiary: safeDateLabel(rv.date),
-              onPress: () =>
-                router.push({ pathname: "/parent/consult/[consultId]", params: { consultId: String(rv.consult_id) } } as any),
-            },
-          ],
+          {
+            key: String(rv.consult_id),
+            primary: `${rv.pet_name} – ${rv.vet_name ?? ""}`.trim(),
+            secondary: rv.diagnosis || "Consult completed",
+            tertiary: safeDateLabel(rv.date),
+            onPress: () =>
+              router.push({ pathname: "/parent/consult/[consultId]", params: { consultId: String(rv.consult_id) } } as any),
+          },
+        ],
       empty: { text: "No recent consultations." },
     },
   });
@@ -290,7 +290,7 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
   sections.push({
     key: "vaccinesDue",
     title: "Vaccines Due",
-    seeAll: { onPress: () => router.push("/parent/vaccines" as any) },
+    onSeeAll: () => router.push("/parent/vaccines" as any),
     content: {
       kind: "rows",
       rows: vaccinesDue.slice(0, 3).map((v) => ({
@@ -307,7 +307,7 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
   sections.push({
     key: "prescriptions",
     title: "Prescriptions",
-    seeAll: { onPress: () => router.push("/parent/prescriptions" as any) },
+    onSeeAll: () => router.push("/parent/prescriptions" as any),
     content: {
       kind: "rows",
       rows: prescriptions.slice(0, 3).map((r) => ({
@@ -324,7 +324,7 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
   sections.push({
     key: "orders",
     title: "Recent Orders",
-    seeAll: { onPress: () => router.push("/parent/orders" as any) },
+    onSeeAll: () => router.push("/parent/orders" as any),
     content: {
       kind: "rows",
       rows: orders.slice(0, 3).map((o) => ({
@@ -335,26 +335,28 @@ export function buildParentHomeModel(args: BuildParentHomeModelArgs): RoleHomeMo
       })),
       empty: {
         text: "Your cart is empty. Browse products →",
-        actionLabel: "Open cart",
-        onAction: () => router.push("/parent/cart" as any),
+        action: {
+          label: "Open cart",
+          onPress: () => router.push("/parent/cart" as any)
+        },
       },
     },
   });
 
   const summaryParts: string[] = [];
 
-if (vaccinesDue.length) {
-  summaryParts.push(`${vaccinesDue.length} vaccine(s) due`);
-}
+  if (vaccinesDue.length) {
+    summaryParts.push(`${vaccinesDue.length} vaccine(s) due`);
+  }
 
-if (orders.length) {
-  summaryParts.push(`${orders.length} order(s)`);
-}
+  if (orders.length) {
+    summaryParts.push(`${orders.length} order(s)`);
+  }
 
-const subtitle =
-  summaryParts.length > 0
-    ? summaryParts.join(" • ")
-    : "Quick overview";
+  const subtitle =
+    summaryParts.length > 0
+      ? summaryParts.join(" • ")
+      : "Quick overview";
 
   return {
     role: "PARENT",
