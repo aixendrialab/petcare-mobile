@@ -1,16 +1,53 @@
 import React from "react";
-import { Screen, Tile } from "@/src/ui";
-import { View } from "react-native";
-import { router } from "expo-router";
+
+import {
+  StoreIcon,
+  CartOutlineIcon,
+  TruckOutlineIcon,
+  HistoryIcon,
+  CalendarIcon,
+  UploadIcon,
+  VideoIcon,
+  PrescriptionIcon,
+  BowlOutlineIcon,
+  PillsOutlineIcon,
+} from "@/src/components/quickActions/QuickActionIcons";
+
+import type { IconName, IconRegistry } from "@/src/components/home";
+import { RoleHomeShell } from "@/src/components/home";
+import { Screen } from "@/src/ui";
+
+import { useHostelHomeModel } from "@/src/features/hostel/home/useHostelHomeModel";
+
+/**
+ * Hostel / Boarding icon registry
+ * Reusing shared icons for now until dedicated icons are added.
+ */
+const ICONS: IconRegistry = {
+  stethoscope: <HistoryIcon />,
+  syringe: <HistoryIcon />,
+  calendar: <CalendarIcon />, // bookings / arrivals / departures
+  history: <HistoryIcon />, // stays / activity / logs
+  video: <VideoIcon />,
+  upload: <UploadIcon />, // check-in / care logs
+  store: <StoreIcon />, // facility / rooms
+  cart: <CartOutlineIcon />, // tasks / inventory-ish
+  truck: <TruckOutlineIcon />, // arrivals / departures / transport
+  pills: <PillsOutlineIcon />, // meds
+  bowl: <BowlOutlineIcon />, // feeding
+  prescription: <PrescriptionIcon />, // billing / notes / plans
+} satisfies Record<IconName, React.ReactElement>;
 
 export default function HostelHome() {
-  return (
-    <Screen title="Hostel / Daycare" subtitle="Intake • Stays • Reports">
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <Tile icon="log-in-outline" label="Intake" caption="Create stay" onPress={() => router.push("/hostel/intake")} />
-        <Tile icon="bed-outline" label="Stays" caption="Today & active" onPress={() => router.push("/hostel/stays")} />
-        <Tile icon="person-circle-outline" label="Profile" caption="Business details" onPress={() => router.push("/hostel/onboarding")} />
-      </View>
-    </Screen>
-  );
+  const { model } = useHostelHomeModel(ICONS);
+
+  if (!model) {
+    return (
+      <Screen title="Loading...">
+        <></>
+      </Screen>
+    );
+  }
+
+  return <RoleHomeShell model={model} />;
 }

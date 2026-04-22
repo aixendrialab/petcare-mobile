@@ -3,7 +3,7 @@ import type React from "react";
 
 /** ---------- Core enums / shared primitives ---------- */
 
-export type RoleKind = "PARENT" | "VET" | "VENDOR" | "NUTRITIONIST";
+export type RoleKind = "PARENT" | "VET" | "VENDOR" | "NUTRITIONIST" | "PHARMACIST" | "WALKER" | "HOSTEL";
 export type QuickTone = "neutral" | "primary" | "success" | "warning";
 
 export type IconName =

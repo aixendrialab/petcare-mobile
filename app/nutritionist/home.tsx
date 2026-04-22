@@ -1,16 +1,55 @@
 import React from "react";
-import { Screen, Tile } from "@/src/ui";
-import { View } from "react-native";
-import { router } from "expo-router";
 
-export default function NutriHome() {
-  return (
-    <Screen title="Nutritionist" subtitle="Schedule • Consult • Plans">
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <Tile icon="calendar-outline" label="Schedule" caption="Open & booked" onPress={() => router.push("/nutritionist/schedule")} />
-        <Tile icon="leaf-outline" label="Consult" caption="Diet plan" onPress={() => router.push("/nutritionist/consult")} />
-        <Tile icon="person-circle-outline" label="Profile" caption="Business details" onPress={() => router.push("/nutritionist/onboarding")} />
-      </View>
-    </Screen>
-  );
+import {
+  StoreIcon,
+  CartOutlineIcon,
+  TruckOutlineIcon,
+  HistoryIcon,
+  CalendarIcon,
+  UploadIcon,
+  VideoIcon,
+  PrescriptionIcon,
+  PillsOutlineIcon,
+  BowlOutlineIcon,
+  StethoscopeIcon,
+} from "@/src/components/quickActions/QuickActionIcons";
+
+import type { IconName, IconRegistry } from "@/src/components/home";
+import { RoleHomeShell } from "@/src/components/home";
+import { Screen } from "@/src/ui";
+
+import { useNutritionistHomeModel } from "@/src/features/nutritionist/home/useNutritionistHomeModel";
+
+/**
+ * Nutritionist icon registry
+ * Reuses current shared icon set until we add dedicated icons
+ * for plans, progress, clients, messages, renewals, etc.
+ */
+const ICONS: IconRegistry = {
+  stethoscope: <StethoscopeIcon />, // intake / consult / care
+  syringe: <HistoryIcon />, // unused for now
+  calendar: <CalendarIcon />, // check-ins / renewals
+  history: <HistoryIcon />, // progress / logs
+  video: <VideoIcon />, // consults / calls
+  upload: <UploadIcon />, // intake / upload
+  store: <StoreIcon />, // product recommendations
+  cart: <CartOutlineIcon />, // product list / suggested items
+  truck: <TruckOutlineIcon />, // optional ordering / fulfillment
+  pills: <PillsOutlineIcon />, // supplements
+  bowl: <BowlOutlineIcon />, // nutrition / food plans
+  prescription: <PrescriptionIcon />, // plans / guidance
+} satisfies Record<IconName, React.ReactElement>;
+
+export default function NutritionistHome() {
+  const { model } = useNutritionistHomeModel(ICONS);
+
+  if (!model) {
+    return (
+      <Screen title="Loading...">
+        <></>
+      </Screen>
+    );
+  }
+
+  return <RoleHomeShell model={model} />;
 }

@@ -1,19 +1,53 @@
 import React from "react";
-import { Screen, Tile } from "@/src/ui";
-import { View } from "react-native";
-import { router } from "expo-router";
+
+import {
+  StoreIcon,
+  CartOutlineIcon,
+  TruckOutlineIcon,
+  HistoryIcon,
+  CalendarIcon,
+  UploadIcon,
+  VideoIcon,
+  PrescriptionIcon,
+  PillsOutlineIcon,
+  SyringeIcon,
+} from "@/src/components/quickActions/QuickActionIcons";
+
+import type { IconName, IconRegistry } from "@/src/components/home";
+import { RoleHomeShell } from "@/src/components/home";
+import { Screen } from "@/src/ui";
+
+import { usePharmacyHomeModel } from "@/src/features/pharmacy/home/usePharmacyHomeModel";
+
+/**
+ * Pharmacist icon registry
+ * NOTE: reusing existing icons until we add dedicated pharmacy icons (expiry, controlled, billing, analytics, etc.)
+ */
+const ICONS: IconRegistry = {
+  stethoscope: <HistoryIcon />, // unused
+  syringe: <SyringeIcon />, // controlled / vaccines-style
+  calendar: <CalendarIcon />, // expiry / schedule
+  history: <HistoryIcon />, // activity
+  video: <VideoIcon />, // unused
+  upload: <UploadIcon />, // rx upload / misc
+  store: <StoreIcon />, // catalog / outlet
+  cart: <CartOutlineIcon />, // inventory
+  truck: <TruckOutlineIcon />, // orders/dispatch
+  pills: <PillsOutlineIcon />, // dispense
+  bowl: <HistoryIcon />, // unused
+  prescription: <PrescriptionIcon />, // prescriptions
+} satisfies Record<IconName, React.ReactElement>;
 
 export default function PharmacistHome() {
-  return (
-    <Screen title="Pharmacy" subtitle="eRx • Catalog • Inventory • Orders">
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <Tile icon="speedometer-outline" label="Dashboard" caption="Summary" onPress={() => router.push('/pharmacist/dashboard')} />
-        <Tile icon="document-text-outline" label="eRx Queue" caption="Verify RX" onPress={() => router.push('/pharmacist/erx')} />
-        <Tile icon="pricetag-outline" label="Catalog" caption="Items" onPress={() => router.push('/pharmacist/catalog')} />
-        <Tile icon="cube-outline" label="Inventory" caption="Stock" onPress={() => router.push('/pharmacist/inventory')} />
-        <Tile icon="cart-outline" label="Orders" caption="Pack & ship" onPress={() => router.push('/pharmacist/orders')} />
-        <Tile icon="person-circle-outline" label="Profile" caption="License" onPress={() => router.push('/pharmacist/profile')} />
-      </View>
-    </Screen>
-  );
+  const { model } = usePharmacyHomeModel(ICONS);
+
+  if (!model) {
+    return (
+      <Screen title="Loading...">
+        <></>
+      </Screen>
+    );
+  }
+
+  return <RoleHomeShell model={model} />;
 }
