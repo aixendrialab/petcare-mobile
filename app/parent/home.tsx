@@ -89,7 +89,7 @@ export default function ParentHome() {
       <Text style={{fontSize:18, fontWeight:'700', marginBottom:8}}>What would you like to do?</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom:16}}>
         <QuickAction label="Book a Vet" subtitle="In-clinic or video"
-          onPress={()=>router.push('/(parent)/appointments' as any)} />
+          onPress={()=>router.push('/parent/find-vets' as any)} />
         <QuickAction label="Televisit" subtitle="Start a consult"
           onPress={()=>router.push('/(parent)/televisit' as any)} />
         <QuickAction label="Upload Report" subtitle="PDF / Images"

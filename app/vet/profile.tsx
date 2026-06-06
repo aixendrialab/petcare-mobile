@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, ActivityIndicator, Switch as RNSwitch } from 'react-native'
+import { View, Text, ActivityIndicator, Switch as RNSwitch, Platform } from 'react-native'
+import * as Location from 'expo-location'
 import { useRouter } from 'expo-router'
 import { api } from '@/src/api'
 import { Screen, Card, Field, Btn } from '@/src/ui'
@@ -240,7 +241,14 @@ export default function VetProfileScreen({ mode = 'create' }: { mode?: Mode }) {
             <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginTop:6 }}>
               <LabeledSwitch label="Primary" value={!!loc.is_primary} onValueChange={()=>setPrimary(idx)} />
               <View style={{ flexDirection:'row', gap:8 }}>
-                <Btn title="Use my location" onPress={()=>{/* wire expo-location; then upsertLocation(idx, { lat, lng }) */}} />
+                <Btn title="Use my location" onPress={async () => {
+                  try {
+                    const { status } = await Location.requestForegroundPermissionsAsync()
+                    if (status !== 'granted') { alert('Location permission denied'); return }
+                    const loc = await Location.getCurrentPositionAsync({})
+                    upsertLocation(idx, { lat: loc.coords.latitude, lng: loc.coords.longitude })
+                  } catch (e: any) { alert(e?.message || 'Could not get location') }
+                }} />
                 <Btn title="Remove" onPress={()=>removeLocation(idx)} />
               </View>
             </View>
